@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "strict": true,
+        "importHelpers": true,
+        "moduleResolution": "node",
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "removeComments": true,
+        "sourceMap": true,
+        "noImplicitReturns": true,
+        "baseUrl": ".",
+        "outDir": "toolchain-cache/ts-output",
+        "lib": ["esnext"]
+    },
+    "compileOnSave": true,
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules"]
+}
