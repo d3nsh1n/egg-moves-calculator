@@ -1,5 +1,6 @@
 import is from "@sindresorhus/is";
-export function isPokemonJSON(value) {
+import chalk from "chalk";
+export function isPokemonData(value) {
     if (is.undefined(value))
         return false;
     if (!is.string(value.name))
@@ -8,36 +9,37 @@ export function isPokemonJSON(value) {
         return false;
     if (!is.array(value.defaultForms))
         return false;
-    if (!is.array(value.name, isForm))
+    if (!is.array(value.forms, isFormData))
         return false;
     if (!is.number(value.generation))
         return false;
     return true;
 }
-export function isForm(value) {
+export function isFormData(value) {
     if (is.undefined(value))
         return false;
     if (!is.string(value.name))
         return false;
-    if (!is.string(value.experienceGroup))
+    if (!is.undefined(value.experienceGroup) && !is.string(value.experienceGroup))
         return false;
-    if (!isMoves(value.moves))
+    console.log(chalk.blue("good"));
+    if (!isMovesData(value.moves))
         return false;
-    if (!isAbilities(value.abilities))
+    if (!isAbilitiesData(value.abilities))
         return false;
     if (!isPossibleGenders(value.possibleGenders))
         return false;
-    if (!isEggGroups(value.eggGroups))
+    if (!isEggGroupsData(value.eggGroups))
         return false;
-    if (!isTypes(value.types))
+    if (!isTypesData(value.types))
         return false;
-    if (!is.number(value.malePercentage))
+    if (!is.undefined(value.malePercentage) && !is.number(value.malePercentage))
         return false;
-    if (!is.array(value.evolutions))
+    if (!is.array(value.evolutions, isEvolutionData))
         return false;
     return true;
 }
-export function isMoves(value) {
+export function isMovesData(value) {
     if (is.undefined(value))
         return false;
     if (!is.array(value.eggMoves))
@@ -68,25 +70,25 @@ export function isMoves(value) {
         return false;
     return true;
 }
-export function isAbilities(value) {
+export function isAbilitiesData(value) {
     return true;
 }
-export function isEvolution(value) {
+export function isEvolutionData(value) {
     return true;
 }
-export var EggGroups;
-(function (EggGroups) {
-})(EggGroups || (EggGroups = {}));
-export function isEggGroups(value) {
+export var EggGroupsData;
+(function (EggGroupsData) {
+})(EggGroupsData || (EggGroupsData = {}));
+export function isEggGroupsData(value) {
     return true;
 }
-export var Types;
-(function (Types) {
-})(Types || (Types = {}));
-export function isTypes(value) {
+export var TypesData;
+(function (TypesData) {
+})(TypesData || (TypesData = {}));
+export function isTypesData(value) {
     return true;
 }
-export function isIrrelevant(value) {
+export function isIrrelevantData(value) {
     return true;
 }
 export function isPossibleGenders(value) {

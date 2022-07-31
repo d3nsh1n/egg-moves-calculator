@@ -1,27 +1,29 @@
 import is from "@sindresorhus/is";
-export function isPokemonJSON(value) {
+import chalk from "chalk";
+export function isPokemonData(value) {
   if (is.undefined(value)) return false;
   if (!is.string(value.name)) return false;
   if (!is.number(value.dex)) return false;
   if (!is.array(value.defaultForms)) return false;
-  if (!is.array(value.name, isForm)) return false;
+  if (!is.array(value.forms, isFormData)) return false;
   if (!is.number(value.generation)) return false;
   return true;
 }
-export function isForm(value) {
+export function isFormData(value) {
   if (is.undefined(value)) return false;
   if (!is.string(value.name)) return false;
-  if (!is.string(value.experienceGroup)) return false;
-  if (!isMoves(value.moves)) return false;
-  if (!isAbilities(value.abilities)) return false;
+  if (!is.undefined(value.experienceGroup) && !is.string(value.experienceGroup)) return false;
+  console.log(chalk.blue("good"));
+  if (!isMovesData(value.moves)) return false;
+  if (!isAbilitiesData(value.abilities)) return false;
   if (!isPossibleGenders(value.possibleGenders)) return false;
-  if (!isEggGroups(value.eggGroups)) return false;
-  if (!isTypes(value.types)) return false;
-  if (!is.number(value.malePercentage)) return false;
-  if (!is.array(value.evolutions)) return false;
+  if (!isEggGroupsData(value.eggGroups)) return false;
+  if (!isTypesData(value.types)) return false;
+  if (!is.undefined(value.malePercentage) && !is.number(value.malePercentage)) return false;
+  if (!is.array(value.evolutions, isEvolutionData)) return false;
   return true;
 }
-export function isMoves(value) {
+export function isMovesData(value) {
   if (is.undefined(value)) return false;
   if (!is.array(value.eggMoves)) return false;
   if (!is.array(value.tmMoves8)) return false;
@@ -38,27 +40,27 @@ export function isMoves(value) {
   if (!is.array(value.tmMoves)) return false;
   return true;
 }
-export function isAbilities(value) {
+export function isAbilitiesData(value) {
   return true;
 }
-export function isEvolution(value) {
+export function isEvolutionData(value) {
   return true;
 }
-export var EggGroups;
+export var EggGroupsData;
 
-(function (EggGroups) {})(EggGroups || (EggGroups = {}));
+(function (EggGroupsData) {})(EggGroupsData || (EggGroupsData = {}));
 
-export function isEggGroups(value) {
+export function isEggGroupsData(value) {
   return true;
 }
-export var Types;
+export var TypesData;
 
-(function (Types) {})(Types || (Types = {}));
+(function (TypesData) {})(TypesData || (TypesData = {}));
 
-export function isTypes(value) {
+export function isTypesData(value) {
   return true;
 }
-export function isIrrelevant(value) {
+export function isIrrelevantData(value) {
   return true;
 }
 export function isPossibleGenders(value) {
