@@ -1,9 +1,15 @@
-export type SpeciesMoves = {
-    [pokemon: string]: FormMoves;
+import { EggGroups, LevelUpMovesData } from "./datalib";
+
+export type MovesLib = {
+    [pokemon: string]: SpeciesMoves;
 };
 
-export type FormMoves = {
-    [form: string]: string[];
+export type EggGroupsLib = {
+    [group in EggGroups]?: string[];
+};
+
+export type SpeciesMoves = {
+    [form: string]: string[] | LevelUpMovesData;
 };
 
 export enum Inheritance {

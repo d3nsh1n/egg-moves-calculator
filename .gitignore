@@ -137,3 +137,4 @@ dist
 data
 kernel
 toolchain-cache
+node_modules

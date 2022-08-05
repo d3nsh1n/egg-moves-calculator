@@ -1,5 +1,6 @@
 import is from "@sindresorhus/is";
 import chalk from "chalk";
+import { StringKeyOf } from "type-fest";
 
 export type PokemonData = {
     name: string;
@@ -22,7 +23,7 @@ export type FormData = {
     name: string;
     experienceGroup?: string; //todo enum/type?
     dimensions: IrrelevantData;
-    moves: MovesData;
+    moves?: MovesData;
     abilities: AbilitiesData;
     movement: IrrelevantData;
     aggression: IrrelevantData;
@@ -60,8 +61,9 @@ export function isFormData(value: any): value is FormData {
     return true;
 }
 
+export type MoveKeys = StringKeyOf<MovesData>;
 export type MovesData = {
-    levelUpMoves: IrrelevantData;
+    levelUpMoves: LevelUpMovesData;
     tutorMoves: string[];
     eggMoves: string[];
     tmMoves8: string[];
@@ -92,6 +94,16 @@ export function isMovesData(value: any): value is MovesData {
     if (!is.array<string>(value.tmMoves2)) return false;
     if (!is.array<string>(value.tmMoves1)) return false;
     if (!is.array<string>(value.tmMoves)) return false;
+    return true;
+}
+
+export type LevelUpMovesData = LevelUpMoveData[];
+export type LevelUpMoveData = {
+    level: number;
+    attacks: string[];
+};
+export function isLevelUpMovesData(value: any): value is LevelUpMovesData {
+    //todo
     return true;
 }
 
