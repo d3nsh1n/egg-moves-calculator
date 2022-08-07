@@ -63,7 +63,7 @@ export function isFormData(value: any): value is FormData {
 
 export type MoveKeys = StringKeyOf<MovesData>;
 export type MovesData = {
-    levelUpMoves: LevelUpMovesData;
+    levelUpMoves: LevelUpMoveData[];
     tutorMoves: string[];
     eggMoves: string[];
     tmMoves8: string[];
@@ -97,12 +97,11 @@ export function isMovesData(value: any): value is MovesData {
     return true;
 }
 
-export type LevelUpMovesData = LevelUpMoveData[];
 export type LevelUpMoveData = {
     level: number;
     attacks: string[];
 };
-export function isLevelUpMovesData(value: any): value is LevelUpMovesData {
+export function isLevelUpMovesData(value: any): value is LevelUpMoveData[] {
     //todo
     return true;
 }
