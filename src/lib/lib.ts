@@ -1,4 +1,4 @@
-import { EggGroups, LevelUpMoveData } from "./datalib";
+import { EggGroups, LevelUpMoveData } from "./pokemonlib";
 
 // export type PokemonMovesList = {
 //     [pokemon: string]: string[] | LevelUpMovesData;
@@ -32,6 +32,9 @@ import { EggGroups, LevelUpMoveData } from "./datalib";
 //     beneficiaries: MoveLearnableBy;
 // };
 
+export const MOVE_KEYS = ["levelUpMoves", "tutorMoves", "eggMoves", "tmMoves8", "trMoves", "hmMoves", "transferMoves", "tmMoves7"]; //, "tmMoves6", "tmMoves5", "tmMoves4", "tmMoves3", "tmMoves2", "tmMoves1", "tmMoves"];
+export const INHERITABLE_KEYS = ["tutorMoves", "eggMoves", "transferMoves"]; //, "levelUpMoves" //todo
+
 //! Libraries
 export type InheritableMoves = {
     [pokemon: string]: {
@@ -42,7 +45,7 @@ export type InheritableMoves = {
     };
 };
 
-export type LearnableMoves = {
+export type MoveSources = {
     [move: string]: {
         [pokemon: string]: string[];
     };
