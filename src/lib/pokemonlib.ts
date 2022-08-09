@@ -34,7 +34,7 @@ export type FormData = {
     genderProperties: IrrelevantData;
     eggGroups: EggGroups[];
     types: TypesData;
-    preEvolutions: IrrelevantData;
+    preEvolutions: string[];
     defaultBaseForm: IrrelevantData;
     megaItems: IrrelevantData;
     megas: IrrelevantData;

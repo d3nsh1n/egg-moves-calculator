@@ -1,4 +1,4 @@
-import { EggGroups, LevelUpMoveData } from "./pokemonlib";
+import { EggGroups, FormData, LevelUpMoveData } from "./pokemonlib";
 
 // export type PokemonMovesList = {
 //     [pokemon: string]: string[] | LevelUpMovesData;
@@ -39,8 +39,9 @@ export const INHERITABLE_KEYS = ["tutorMoves", "eggMoves", "transferMoves"]; //,
 export type InheritableMoves = {
     [pokemon: string]: {
         [move: string]: {
-            parents: [string, string[]][];
-            //todo improve
+            parents: {
+                [parentName: string]: string[];
+            };
         };
     };
 };
@@ -57,4 +58,8 @@ export type EggGroupsLib = {
 
 export type LevelUpMoves = {
     [pokemon: string]: LevelUpMoveData[];
+};
+
+export type Forms = {
+    [pokemon: string]: FormData;
 };

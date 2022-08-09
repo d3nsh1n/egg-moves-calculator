@@ -1,13 +1,9 @@
-import fs, { move } from "fs-extra";
-import path from "path";
 import chalk from "chalk";
 import { EggGroups, FormData, isPokemonData, LevelUpMoveData, MoveKeys, MovesData, PokemonData } from "../lib/pokemonlib";
-import { MoveSources, EggGroupsLib, InheritableMoves, LevelUpMoves, MOVE_KEYS, INHERITABLE_KEYS } from "../lib/lib";
-import is from "@sindresorhus/is";
-import { performance } from "perf_hooks";
+import { MoveSources, EggGroupsLib, InheritableMoves, LevelUpMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms } from "../lib/lib";
 import { DataLoader } from "./dataLoader";
 
-export abstract class DataLib {
+export class DataLib {
     /** Pokemon: Move: Movedata where Movedata includes parents and other info*/
     public static INHERITABLE_MOVES: InheritableMoves = {};
     /** pokemon: LevelUpMoveData[];*/
@@ -16,6 +12,9 @@ export abstract class DataLib {
     public static EGG_GROUPS_LIB: EggGroupsLib = {};
     /** Move: PokemonThatLearnIt: LearnMethods */
     public static MOVES_SOURCES: MoveSources = {};
+
+    /** Fullname: FormData */
+    public static FORMS: Forms = {};
 
     public static addInheritableMoves(fullName: string, form: FormData) {
         //* Skip or initialize
@@ -26,24 +25,53 @@ export abstract class DataLib {
         const listOfInheritableMoves = this.getInheritableMoves(form);
         for (const move of listOfInheritableMoves) {
             //* Initialize if first entry for move
-            if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: [] };
+            if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: {} };
 
             //* Filter possible parents based on Egg Groups
             const listOfPokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
             const listOfParents = listOfPokemonThatLearnMove.filter((p) => this.shareEggGroup(p, fullName));
 
             //* For each possible parent, store parent and its way of learning the move
-            for (const parent of listOfParents) {
-                const learnedFrom = this.MOVES_SOURCES[move][parent];
-                DataLib.INHERITABLE_MOVES[fullName][move].parents.push([parent, learnedFrom]);
+            for (const parentName of listOfParents) {
+                const learnedFrom = this.MOVES_SOURCES[move][parentName];
+
+                for (const method of learnedFrom) {
+                    if (this._parentIsValid(fullName, parentName, method as MoveKeys)) {
+                        if (!DataLib.INHERITABLE_MOVES[fullName][move].parents.hasOwnProperty(parentName)) DataLib.INHERITABLE_MOVES[fullName][move].parents[parentName] = [];
+                        DataLib.INHERITABLE_MOVES[fullName][move].parents[parentName].push(method);
+                    }
+                }
             }
         }
+    }
+
+    private static _parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
+        //* If same species, return
+        if (baseFullName === parentFullName) return false;
+
+        const baseFormData: FormData = this.FORMS[baseFullName];
+        const parentFormData: FormData = this.FORMS[parentFullName];
+
+        //* If parent can't be male, return
+        if (parentFormData.malePercentage === 0) return false;
+
+        //* Don't include Egg Moves of same evo line
+        if (this._isSameEvoLine(baseFormData, parentFormData) && method === "eggMoves") return false;
+
+        return true;
+    }
+
+    private static _isSameEvoLine(form1: FormData, form2: FormData) {
+        for (const preevo of form1.preEvolutions) {
+            if (form2.preEvolutions.includes(preevo)) return true;
+        }
+        return false;
     }
 
     /** Get a list of all moves the Pokemon (form) can possibly inherit from breeding.   */
     private static getInheritableMoves(form: FormData): string[] {
         const inheritableMoves: string[] = [];
-        for (const key in INHERITABLE_KEYS) {
+        for (const key of INHERITABLE_KEYS) {
             const moves = DataLoader.getFormMoves(form, key as MoveKeys) as string[]; //todo change cast if it can be LevelUpMoves
             if (moves) inheritableMoves.push(...moves);
         }
@@ -80,6 +108,9 @@ export abstract class DataLib {
                 }
             }
         }
+    }
+    public static addForm(fullName: string, form: FormData) {
+        this.FORMS[fullName] = form;
     }
 
     private static _addMoveSource(pokemonName: string, method: string, ...moves: string[]) {
