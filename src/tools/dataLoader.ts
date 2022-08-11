@@ -53,6 +53,10 @@ export class DataLoader {
             //* Read filedata
             const data = fs.readFileSync(`${this.rawDataDir}/${filename}`);
             const pokemonData: PokemonData = JSON.parse(data.toString());
+
+            //* Store Pokemon Data
+            DataLib.addPokemonData(pokemonData);
+
             //* For each form
             for (const form of pokemonData.forms) {
                 const fullName = form.name === "" ? pokemonData.name : `${pokemonData.name}-${form.name}`;
@@ -153,6 +157,7 @@ export class DataLoader {
      * @param key key of object to get moves from. E.g. eggMoves
      */
     public static getFormMoves(formData: FormData, key: MoveKeys): string[] | LevelUpMoveData[] | undefined {
+        // console.log("Grabbing", key, "from", formData);
         return formData.moves?.[key];
     }
     //#endregion

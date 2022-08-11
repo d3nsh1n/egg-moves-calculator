@@ -15,6 +15,7 @@ export class DataLib {
 
     /** Fullname: FormData */
     public static FORMS: Forms = {};
+    public static POKEMON_DATA: { [pokemon: string]: PokemonData } = {};
 
     public static addInheritableMoves(fullName: string, form: FormData) {
         //* Skip or initialize
@@ -23,9 +24,11 @@ export class DataLib {
 
         //* Get list of possible inheritable moves and iterate it
         const listOfInheritableMoves = this.getInheritableMoves(form);
-        for (const move of listOfInheritableMoves) {
+        for (const moveMethod of listOfInheritableMoves) {
+            const move = moveMethod[0];
+            const method = moveMethod[1];
             //* Initialize if first entry for move
-            if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: {} };
+            if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: {}, type: method };
 
             //* Filter possible parents based on Egg Groups
             const listOfPokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
@@ -73,11 +76,13 @@ export class DataLib {
     }
 
     /** Get a list of all moves the Pokemon (form) can possibly inherit from breeding.   */
-    private static getInheritableMoves(form: FormData): string[] {
-        const inheritableMoves: string[] = [];
+    private static getInheritableMoves(form: FormData): [string, string][] {
+        const inheritableMoves: [string, string][] = [];
         for (const key of INHERITABLE_KEYS) {
             const moves = DataLoader.getFormMoves(form, key as MoveKeys) as string[]; //todo change cast if it can be LevelUpMoves
-            if (moves) inheritableMoves.push(...moves);
+            for (const move in moves) {
+                inheritableMoves.push([moves[move], key]);
+            }
         }
         return inheritableMoves;
     }
@@ -104,15 +109,20 @@ export class DataLib {
             //* Add each move to sources
             for (const move of moves) {
                 if (typeof move !== "string") {
-                    // non-levelUpMove
+                    // levelUpMove
                     DataLib._addMoveSource(fullName, method, ...move.attacks);
                 } else {
-                    // levelUp move
+                    // non-levelUp move
                     DataLib._addMoveSource(fullName, method, move);
                 }
             }
         }
     }
+
+    public static addPokemonData(pokemonData: PokemonData) {
+        this.POKEMON_DATA[pokemonData.name] = pokemonData;
+    }
+
     public static addForm(fullName: string, form: FormData) {
         this.FORMS[fullName] = form;
     }
@@ -132,5 +142,13 @@ export class DataLib {
             if (listOfPokemonInGroup.includes(fullName1) && listOfPokemonInGroup.includes(fullName2)) return true;
         }
         return false;
+    }
+
+    public static getDefaultForm(fullName: string): FormData {
+        const defaultForm = this.POKEMON_DATA[fullName].defaultForms[0];
+        if (defaultForm !== fullName) console.log(chalk.yellow(`WARN: Differently named default form: ${defaultForm}`));
+        if (this.POKEMON_DATA[fullName].defaultForms.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected.`));
+
+        return this.FORMS[`${fullName}-${defaultForm}`];
     }
 }

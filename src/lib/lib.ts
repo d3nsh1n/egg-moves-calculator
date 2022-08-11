@@ -10,6 +10,7 @@ export type InheritableMoves = {
             parents: {
                 [parentName: string]: string[];
             };
+            type: string;
         };
     };
 };
@@ -40,4 +41,11 @@ export type SuggestedMove = {
     parents: {
         [parent: string]: string[]; //todo
     };
+};
+
+export type ParentInfo = {
+    parent: string;
+    amount: number;
+    inMoves: string[];
+    notInMoves: string[];
 };
