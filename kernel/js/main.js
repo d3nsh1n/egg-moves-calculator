@@ -7,10 +7,9 @@ import { getMinimumParents, suggestMoves } from "./breed_calculator.js";
 const filePath = "data/species/092_gastly.json";
 export async function main() {
   new DataLib();
-  new DataLoader(true);
-  const moves = await suggestMoves("Mimikyu");
+  new DataLoader();
+  const moves = await suggestMoves("Azumarill");
   writeToTest(moves);
-  console.log(DataLib.INHERITABLE_MOVES["Mimikyu-disguised"]);
   const min = getMinimumParents(moves);
   console.log(chalk.blue("Min parents:"));
   console.log(min);

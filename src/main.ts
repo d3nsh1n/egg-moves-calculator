@@ -11,11 +11,11 @@ const filePath = "data/species/092_gastly.json";
 
 export async function main() {
     new DataLib();
-    new DataLoader(true);
+    new DataLoader();
 
-    const moves = await suggestMoves("Mimikyu");
+    const moves = await suggestMoves("Azumarill");
     writeToTest(moves);
-    console.log(DataLib.INHERITABLE_MOVES["Mimikyu-disguised"]);
+    // console.log(DataLib.INHERITABLE_MOVES["Mimikyu-disguised"]);
 
     const min = getMinimumParents(moves);
     console.log(chalk.blue("Min parents:"));

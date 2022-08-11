@@ -138,3 +138,5 @@ data
 kernel
 toolchain-cache
 node_modules
+kernel/js/main.js
+*.js

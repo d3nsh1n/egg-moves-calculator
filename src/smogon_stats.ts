@@ -4,6 +4,7 @@ import { MoveUsage, toSmogonName, UsageMoves, UsageStats } from "./lib/smogonlib
 
 export async function getPokemonUsage(fullName: string) {
     const usageStats = await ky.get(`https://smogon-usage-stats.herokuapp.com/2022/07/gen8nationaldex/0/${fullName}`).json();
+    console.log(usageStats);
     return usageStats;
 }
 

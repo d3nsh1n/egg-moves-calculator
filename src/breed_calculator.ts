@@ -15,7 +15,7 @@ export async function suggestMoves(fullName: string) {
     const formName = DataLib.FORMS.hasOwnProperty(fullName) ? fullName : `${fullName}-${DataLib.getDefaultForm(fullName).name}`;
     if (!DataLib.FORMS.hasOwnProperty(formName)) {
         console.log(chalk.red(`No data found for ${formName}`));
-        return;
+        return [];
     }
     const form = DataLib.FORMS[formName];
     const eggMoves = DataLoader.getFormMoves(form, "eggMoves") as string[];
@@ -25,8 +25,13 @@ export async function suggestMoves(fullName: string) {
         if (eggMoves?.includes(usedMove)) {
             suggestedMoves.push({ move: usedMove, usage: moveUsage[usedMove], method: "EGG", parents: DataLib.INHERITABLE_MOVES[formName][usedMove].parents });
             delete moveUsage[usedMove];
+            eggMoves.splice(eggMoves.indexOf(usedMove, 0), 1);
             movesFound++;
-            if (movesFound === 4) return suggestedMoves;
+            if (movesFound === 4) {
+                console.log(chalk.red("Egg Moves not included:"));
+                console.log(eggMoves);
+                return suggestedMoves;
+            }
         }
     }
 
@@ -38,9 +43,15 @@ export async function suggestMoves(fullName: string) {
         }
         suggestedMoves.push({ move: usedMove, usage: moveUsage[usedMove], method: "TUTOR?TODO", parents: DataLib.INHERITABLE_MOVES[formName][usedMove].parents });
         movesFound++;
-        if (movesFound === 4) return suggestedMoves;
+        if (movesFound === 4) {
+            console.log(chalk.red("Egg Moves not included:"));
+            console.log(eggMoves);
+            return suggestedMoves;
+        }
     }
 
+    console.log(chalk.red("Egg Moves not included:"));
+    console.log(eggMoves);
     return suggestedMoves;
 }
 
