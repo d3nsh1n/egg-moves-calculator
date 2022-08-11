@@ -46,6 +46,7 @@ export class DataLib {
     }
 
     private static _parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
+        // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
         //* If same species, return
         if (baseFullName === parentFullName) return false;
 
@@ -56,15 +57,18 @@ export class DataLib {
         if (parentFormData.malePercentage === 0) return false;
 
         //* Don't include Egg Moves of same evo line
-        if (this._isSameEvoLine(baseFormData, parentFormData) && method === "eggMoves") return false;
-
+        if (this._isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
         return true;
     }
 
-    private static _isSameEvoLine(form1: FormData, form2: FormData) {
-        for (const preevo of form1.preEvolutions) {
-            if (form2.preEvolutions.includes(preevo)) return true;
-        }
+    public static _isSameEvoLine(fullName1: string, fullName2: string) {
+        if (fullName1 === fullName2) return true;
+        const form1: FormData = DataLib.FORMS[fullName1];
+        const form2: FormData = DataLib.FORMS[fullName2];
+
+        if (form1.preEvolutions && form1.preEvolutions.includes(fullName2)) return true;
+        if (form2.preEvolutions && form2.preEvolutions.includes(fullName1)) return true;
+
         return false;
     }
 

@@ -4,39 +4,45 @@ import { DataLib } from "./dataLib";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "src/lib/pokemonlib";
+import { getMoveUsage } from "../smogon_stats";
+import ky from "ky-universal";
+
+export const MISMOVES: string[] = [];
+export const MISFORMS: string[] = [];
 
 export class DataLoader {
     private static readonly dataDir = "data";
     private static readonly rawDataDir = `${this.dataDir}/species`;
     private static readonly inheritableMovesPath = `${this.dataDir}/inheritable_moves.json`;
     private static readonly eggGroupsPath = `${this.dataDir}/egg_groups.json`;
-    private static readonly learnableMovesPath = `${this.dataDir}/learnable_moves.json`;
+    private static readonly moveSourcesPath = `${this.dataDir}/learnable_moves.json`;
     private static readonly formsPath = `${this.dataDir}/forms.json`;
 
     //! Constructor Methods
     //#region Constructor Methods
 
-    // private static __static_constructor = (() => {
-    constructor() {
+    constructor(private forceLoad: boolean = false) {
         let startTime = performance.now();
         console.log(chalk.blue("DONE!"));
         //* Load files if they exist, initialize with defaults if they don't.
-        DataLib.INHERITABLE_MOVES = DataLoader.TryLoadFile(DataLoader.inheritableMovesPath, {} as InheritableMoves);
-        // DataLib.LEVELUP_MOVES = DataLoader.TryLoadFile(DataLoader.levelupMovesPath, {} as LevelUpMoves);
-        DataLib.EGG_GROUPS_LIB = DataLoader.TryLoadFile(DataLoader.eggGroupsPath, {} as EggGroupsLib);
-        DataLib.MOVES_SOURCES = DataLoader.TryLoadFile(DataLoader.learnableMovesPath, {} as MoveSources);
+        DataLib.INHERITABLE_MOVES = DataLoader.TryLoadFile(DataLoader.inheritableMovesPath, {} as InheritableMoves, forceLoad);
+        DataLib.EGG_GROUPS_LIB = DataLoader.TryLoadFile(DataLoader.eggGroupsPath, {} as EggGroupsLib, forceLoad);
+        DataLib.MOVES_SOURCES = DataLoader.TryLoadFile(DataLoader.moveSourcesPath, {} as MoveSources, forceLoad);
 
         const filenames = DataLoader.getListOfDataFiles(DataLoader.rawDataDir);
         DataLoader.__generateInitial(filenames);
         DataLoader.__generateInheritableMoves(filenames);
         //* Write Files
+        console.log(MISMOVES);
         fs.writeFileSync(DataLoader.eggGroupsPath, JSON.stringify(DataLib.EGG_GROUPS_LIB, null, 4));
-        fs.writeFileSync(DataLoader.learnableMovesPath, JSON.stringify(DataLib.MOVES_SOURCES, null, 4));
+        fs.writeFileSync(DataLoader.moveSourcesPath, JSON.stringify(DataLib.MOVES_SOURCES, null, 4));
         fs.writeFileSync(DataLoader.inheritableMovesPath, JSON.stringify(DataLib.INHERITABLE_MOVES, null, 4));
         fs.writeFileSync(DataLoader.formsPath, JSON.stringify(DataLib.FORMS, null, 4));
+
         console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+        //!
+        // DataLoader.debug(filenames);
     }
-    // })();
 
     //? MOVE_SOURCES, EGG_GROUPS
     private static __generateInitial(filenames: string[]) {
@@ -61,11 +67,13 @@ export class DataLoader {
                 DataLib.addEggGroupsToLib(fullName, form);
             }
         }
-        console.log(chalk.bgGreenBright(`__generateMoveSources took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+        console.log(chalk.bgGreenBright(`__generateInitial took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
 
     //? INHERITABLE_MOVES
-    private static __generateInheritableMoves(filenames: string[]) {
+    private static async __generateInheritableMoves(filenames: string[]) {
+        let startTime = performance.now();
+
         for (const filename of filenames) {
             const data = fs.readFileSync(`${this.rawDataDir}/${filename}`);
             const pokemonData: PokemonData = JSON.parse(data.toString());
@@ -77,8 +85,37 @@ export class DataLoader {
             }
 
             //* Generate files on a per-species basis
-            return;
         }
+        console.log(chalk.bgGreenBright(`__generateInheritable took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+    }
+
+    private static async debug(filenames: string[]) {
+        for (const filename of filenames) {
+            const data = fs.readFileSync(`${this.rawDataDir}/${filename}`);
+            const pokemonData: PokemonData = JSON.parse(data.toString());
+
+            //* Generate files on a per-form basis
+            for (const form of pokemonData.forms) {
+                const fullName = form.name === "" ? pokemonData.name : `${pokemonData.name}-${form.name}`;
+                //! debug
+                console.log(chalk.red("Getting moves for", fullName));
+                try {
+                    const moveUsage = await getMoveUsage(fullName);
+                    for (const move in moveUsage) {
+                        if (!Object.keys(DataLib.MOVES_SOURCES).includes(move) && !MISMOVES.includes(move)) {
+                            console.log(chalk.blue("Adding", move));
+                            MISMOVES.push(move);
+                        }
+                    }
+                } catch (err) {
+                    console.log(chalk.yellow("Adding", fullName));
+                    MISFORMS.push(fullName);
+                }
+            }
+            //!
+        }
+        console.log(MISMOVES);
+        console.log(MISFORMS);
     }
     //#endregion
 
@@ -88,9 +125,9 @@ export class DataLoader {
     /**
      * Attempt to load file specified by `filepath`, and return `defaultValue` or `undefined` if file is missing.
      */
-    public static TryLoadFile<T>(filePath: string, defaultValue?: T): T {
+    public static TryLoadFile<T>(filePath: string, defaultValue?: T, forceLoad = false): T {
         let result = undefined;
-        if (fs.existsSync(filePath)) result = JSON.parse(fs.readFileSync(filePath).toString());
+        if (fs.existsSync(filePath) && !forceLoad) result = JSON.parse(fs.readFileSync(filePath).toString());
         return result || defaultValue;
     }
 
