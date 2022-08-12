@@ -12,7 +12,7 @@ export const MISFORMS: string[] = [];
 
 export class DataLoader {
     private static readonly dataDir = "data";
-    private static readonly rawDataDir = `${this.dataDir}/species`;
+    private static readonly rawDataDir = `${this.dataDir}/test`;
     private static readonly inheritableMovesPath = `${this.dataDir}/inheritable_moves.json`;
     private static readonly eggGroupsPath = `${this.dataDir}/egg_groups.json`;
     private static readonly moveSourcesPath = `${this.dataDir}/learnable_moves.json`;

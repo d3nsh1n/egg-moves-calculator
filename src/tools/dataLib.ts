@@ -1,22 +1,35 @@
 import chalk from "chalk";
 import { EggGroups, FormData, isPokemonData, LevelUpMoveData, MoveKeys, MovesData, PokemonData } from "../lib/pokemonlib";
-import { MoveSources, EggGroupsLib, InheritableMoves, LevelUpMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms } from "../lib/lib";
+import { MoveSources, EggGroupsLib, InheritableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData } from "../lib/lib";
 import { DataLoader } from "./dataLoader";
 
 export class DataLib {
-    /** Pokemon: Move: Movedata where Movedata includes parents and other info*/
+    /** Pokemon: Move: Movedata where Movedata includes parents and other info
+     * Lists every Pokemon and all the possible moves it can inherit through breeding (Egg moves + Tutors by default)
+     */
     public static INHERITABLE_MOVES: InheritableMoves = {};
-    /** pokemon: LevelUpMoveData[];*/
-    // public static LEVELUP_MOVES: LevelUpMoves = {};
-    /** EggGroup: ListOfPokemonInIt */
+
+    /** EggGroup: ListOfPokemonInIt
+     * List of Egg Groups and arrays of Pokemon in them
+     */
     public static EGG_GROUPS_LIB: EggGroupsLib = {};
-    /** Move: PokemonThatLearnIt: LearnMethods */
+
+    /** Move: PokemonThatLearnIt: LearnMethods
+     * Lists every move and how each Pokemon learns it
+     */
     public static MOVES_SOURCES: MoveSources = {};
 
-    /** Fullname: FormData */
+    /** Fullname: FormData
+     * Storage of each form loaded
+     */
     public static FORMS: Forms = {};
-    public static POKEMON_DATA: { [pokemon: string]: PokemonData } = {};
 
+    /** SpeciesName: PokemonData
+     * Storage of all PokemonData loaded (parsed JSON files)
+     */
+    public static POKEMON_DATA: AllPokemonData = {};
+
+    //! INHERITABLE_MOVES
     public static addInheritableMoves(fullName: string, form: FormData) {
         //* Skip or initialize
         if (DataLib.INHERITABLE_MOVES.hasOwnProperty(fullName)) return;
@@ -24,9 +37,9 @@ export class DataLib {
 
         //* Get list of possible inheritable moves and iterate it
         const listOfInheritableMoves = this.getInheritableMoves(form);
-        for (const moveMethod of listOfInheritableMoves) {
-            const move = moveMethod[0];
-            const method = moveMethod[1];
+        for (const move_method of listOfInheritableMoves) {
+            const move = move_method[0];
+            const method = move_method[1];
             //* Initialize if first entry for move
             if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: {}, type: method };
 
@@ -48,34 +61,7 @@ export class DataLib {
         }
     }
 
-    private static _parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
-        // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
-        //* If same species, return
-        if (baseFullName === parentFullName) return false;
-
-        const baseFormData: FormData = this.FORMS[baseFullName];
-        const parentFormData: FormData = this.FORMS[parentFullName];
-
-        //* If parent can't be male, return
-        if (parentFormData.malePercentage === 0) return false;
-
-        //* Don't include Egg Moves of same evo line
-        if (this._isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
-        return true;
-    }
-
-    public static _isSameEvoLine(fullName1: string, fullName2: string) {
-        if (fullName1 === fullName2) return true;
-        const form1: FormData = DataLib.FORMS[fullName1];
-        const form2: FormData = DataLib.FORMS[fullName2];
-
-        if (form1.preEvolutions && form1.preEvolutions.includes(fullName2)) return true;
-        if (form2.preEvolutions && form2.preEvolutions.includes(fullName1)) return true;
-
-        return false;
-    }
-
-    /** Get a list of all moves the Pokemon (form) can possibly inherit from breeding.   */
+    /** Get a list of all moves the Pokemon (form) can possibly inherit from breeding. */
     private static getInheritableMoves(form: FormData): [string, string][] {
         const inheritableMoves: [string, string][] = [];
         for (const key of INHERITABLE_KEYS) {
@@ -87,6 +73,7 @@ export class DataLib {
         return inheritableMoves;
     }
 
+    //! EGG_GROUPS
     public static addEggGroupsToLib(fullName: string, form: FormData) {
         //* Forms don't have different egg groups, but we need to store them for each form
         const eggGroups = form.eggGroups;
@@ -98,6 +85,7 @@ export class DataLib {
         }
     }
 
+    //! MOVE_SOURCES
     public static addMoveSources(fullName: string, form: FormData) {
         //* Iterate over each possible method (json key) of obtaining a move
         for (const method of MOVE_KEYS) {
@@ -119,20 +107,39 @@ export class DataLib {
         }
     }
 
-    public static addPokemonData(pokemonData: PokemonData) {
-        this.POKEMON_DATA[pokemonData.name] = pokemonData;
-    }
-
-    public static addForm(fullName: string, form: FormData) {
-        this.FORMS[fullName] = form;
-    }
-
     private static _addMoveSource(pokemonName: string, method: string, ...moves: string[]) {
         for (const move of moves) {
             if (!this.MOVES_SOURCES.hasOwnProperty(move)) this.MOVES_SOURCES[move] = {};
             if (!this.MOVES_SOURCES[move].hasOwnProperty(pokemonName)) this.MOVES_SOURCES[move][pokemonName] = [];
             if (!this.MOVES_SOURCES[move][pokemonName].includes(method)) this.MOVES_SOURCES[move][pokemonName].push(method);
         }
+    }
+
+    //! POKEMON_DATA
+    public static addPokemonData(pokemonData: PokemonData) {
+        this.POKEMON_DATA[pokemonData.name] = pokemonData;
+    }
+
+    //! FORMS
+    public static addForm(fullName: string, form: FormData) {
+        this.FORMS[fullName] = form;
+    }
+
+    //! Helpers
+    private static _parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
+        // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
+        //* If same species, return
+        if (baseFullName === parentFullName) return false;
+
+        const baseFormData: FormData = this.FORMS[baseFullName];
+        const parentFormData: FormData = this.FORMS[parentFullName];
+
+        //* If parent can't be male, return
+        if (parentFormData.malePercentage === 0) return false;
+
+        //* Don't include Egg Moves of same evo line
+        if (this._isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
+        return true;
     }
 
     public static shareEggGroup(fullName1: string, fullName2: string): boolean {
@@ -150,5 +157,16 @@ export class DataLib {
         if (this.POKEMON_DATA[fullName].defaultForms.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected.`));
 
         return this.FORMS[`${fullName}-${defaultForm}`];
+    }
+
+    public static _isSameEvoLine(fullName1: string, fullName2: string) {
+        if (fullName1 === fullName2) return true;
+
+        //* Build `line`s as preevos + current
+        const line1: string[] = [...(DataLib.FORMS[fullName1].preEvolutions || []), fullName1];
+        const line2: string[] = [...(DataLib.FORMS[fullName2].preEvolutions || []), fullName2];
+
+        //* Return whether or not the 2 lines share a stage
+        return line1.some((stage) => line2.includes(stage));
     }
 }
