@@ -10,10 +10,10 @@ import { getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calcula
 const filePath = "data/species/092_gastly.json";
 
 export async function main() {
-    new DataLib();
     new DataLoader(true);
 
-    const moves = await suggestMoves("Azumarill");
+    return;
+    const moves = await suggestMoves("Cofagrigus");
     writeToTest(moves);
     // console.log(DataLib.INHERITABLE_MOVES["Mimikyu-disguised"]);
 

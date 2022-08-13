@@ -1,33 +1,34 @@
-import { EggGroups, FormData, LevelUpMoveData, PokemonData } from "./pokemonlib";
+import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
 
-export const MOVE_KEYS = ["levelUpMoves", "tutorMoves", "eggMoves", "tmMoves8", "trMoves", "hmMoves", "transferMoves", "tmMoves7"]; //, "tmMoves6", "tmMoves5", "tmMoves4", "tmMoves3", "tmMoves2", "tmMoves1", "tmMoves"];
-export const INHERITABLE_KEYS = ["tutorMoves", "eggMoves", "transferMoves"]; //, "levelUpMoves" //todo
+export const MOVE_KEYS: MoveKeys[] = ["levelUpMoves", "tutorMoves", "eggMoves", "tmMoves8", "trMoves", "hmMoves", "transferMoves", "tmMoves7"]; //, "tmMoves6", "tmMoves5", "tmMoves4", "tmMoves3", "tmMoves2", "tmMoves1", "tmMoves"];
+export const INHERITABLE_KEYS: MoveKeys[] = ["tutorMoves", "eggMoves", "transferMoves", "levelUpMoves"];
 
-//! Libraries
-export type InheritableMoves = {
-    [pokemon: string]: {
-        [move: string]: {
-            parents: {
-                [parentName: string]: LearnMethodInfo;
-            };
-            type: string;
-        };
-    };
-};
-
+//! # === GENERIC === #
 export type LearnMethodInfo = {
-    learnMethod: string;
+    learnMethods: MoveKeys[];
 
     //? If egg move
-    parents?: string[];
+    parents?: MoveParents;
 
     //? If levelup move
     level?: number;
 };
 
+export type MoveParents = {
+    [parent: string]: LearnMethodInfo;
+};
+
+//! Libraries
+export type InheritableMoves = {
+    [pokemon: string]: {
+        [move: string]: LearnMethodInfo;
+    };
+};
+
+//! MOVE_SOURCES
 export type MoveSources = {
     [move: string]: {
-        [pokemon: string]: string[];
+        [pokemon: string]: LearnMethodInfo;
     };
 };
 

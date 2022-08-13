@@ -15,7 +15,7 @@ export class DataLoader {
     private static readonly rawDataDir = `${this.dataDir}/test`;
     private static readonly inheritableMovesPath = `${this.dataDir}/inheritable_moves.json`;
     private static readonly eggGroupsPath = `${this.dataDir}/egg_groups.json`;
-    private static readonly moveSourcesPath = `${this.dataDir}/learnable_moves.json`;
+    private static readonly moveSourcesPath = `${this.dataDir}/move_sources.json`;
     private static readonly formsPath = `${this.dataDir}/forms.json`;
 
     //! Constructor Methods
@@ -23,15 +23,18 @@ export class DataLoader {
 
     constructor(private forceLoad: boolean = false) {
         let startTime = performance.now();
-        console.log(chalk.blue("DONE!"));
+        //* Make the static instance of DataLib?
+        new DataLib();
+
         //* Load files if they exist, initialize with defaults if they don't.
         DataLib.INHERITABLE_MOVES = DataLoader.TryLoadFile(DataLoader.inheritableMovesPath, {} as InheritableMoves, forceLoad);
         DataLib.EGG_GROUPS_LIB = DataLoader.TryLoadFile(DataLoader.eggGroupsPath, {} as EggGroupsLib, forceLoad);
         DataLib.MOVES_SOURCES = DataLoader.TryLoadFile(DataLoader.moveSourcesPath, {} as MoveSources, forceLoad);
 
         const filenames = DataLoader.getListOfDataFiles(DataLoader.rawDataDir);
-        DataLoader.__generateInitial(filenames);
-        DataLoader.__generateInheritableMoves(filenames);
+        DataLoader.__loadFiles(filenames);
+        DataLib.init(forceLoad);
+
         //* Write Files
         console.log(MISMOVES);
         fs.writeFileSync(DataLoader.eggGroupsPath, JSON.stringify(DataLib.EGG_GROUPS_LIB, null, 4));
@@ -45,7 +48,7 @@ export class DataLoader {
     }
 
     //? MOVE_SOURCES, EGG_GROUPS
-    private static __generateInitial(filenames: string[]) {
+    private static __loadFiles(filenames: string[]) {
         let startTime = performance.now();
 
         //* Iterate over every file
@@ -64,62 +67,11 @@ export class DataLoader {
                 //* Store Form Data
                 DataLib.addForm(fullName, form);
 
-                //* Add Move Sources
-                DataLib.addMoveSources(fullName, form);
-
                 //* Add to Egg Groups
                 DataLib.addEggGroupsToLib(fullName, form);
             }
         }
-        console.log(chalk.bgGreenBright(`__generateInitial took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
-    }
-
-    //? INHERITABLE_MOVES
-    private static async __generateInheritableMoves(filenames: string[]) {
-        let startTime = performance.now();
-
-        for (const filename of filenames) {
-            const data = fs.readFileSync(`${this.rawDataDir}/${filename}`);
-            const pokemonData: PokemonData = JSON.parse(data.toString());
-
-            //* Generate files on a per-form basis
-            for (const form of pokemonData.forms) {
-                const fullName = form.name === "" ? pokemonData.name : `${pokemonData.name}-${form.name}`;
-                DataLib.addInheritableMoves(fullName, form);
-            }
-
-            //* Generate files on a per-species basis
-        }
-        console.log(chalk.bgGreenBright(`__generateInheritable took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
-    }
-
-    private static async debug(filenames: string[]) {
-        for (const filename of filenames) {
-            const data = fs.readFileSync(`${this.rawDataDir}/${filename}`);
-            const pokemonData: PokemonData = JSON.parse(data.toString());
-
-            //* Generate files on a per-form basis
-            for (const form of pokemonData.forms) {
-                const fullName = form.name === "" ? pokemonData.name : `${pokemonData.name}-${form.name}`;
-                //! debug
-                console.log(chalk.red("Getting moves for", fullName));
-                try {
-                    const moveUsage = await getMoveUsage(fullName);
-                    for (const move in moveUsage) {
-                        if (!Object.keys(DataLib.MOVES_SOURCES).includes(move) && !MISMOVES.includes(move)) {
-                            console.log(chalk.blue("Adding", move));
-                            MISMOVES.push(move);
-                        }
-                    }
-                } catch (err) {
-                    console.log(chalk.yellow("Adding", fullName));
-                    MISFORMS.push(fullName);
-                }
-            }
-            //!
-        }
-        console.log(MISMOVES);
-        console.log(MISFORMS);
+        console.log(chalk.bgGreenBright(`__loadFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
     //#endregion
 
@@ -151,14 +103,5 @@ export class DataLoader {
         return files;
     }
 
-    /**
-     *
-     * @param formData FormData object to get the moves from
-     * @param key key of object to get moves from. E.g. eggMoves
-     */
-    public static getFormMoves(formData: FormData, key: MoveKeys): string[] | LevelUpMoveData[] | undefined {
-        // console.log("Grabbing", key, "from", formData);
-        return formData.moves?.[key];
-    }
     //#endregion
 }

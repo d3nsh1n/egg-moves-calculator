@@ -1,7 +1,9 @@
 import chalk from "chalk";
 import { EggGroups, FormData, isPokemonData, LevelUpMoveData, MoveKeys, MovesData, PokemonData } from "../lib/pokemonlib";
-import { MoveSources, EggGroupsLib, InheritableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData } from "../lib/lib";
+import { MoveSources, EggGroupsLib, InheritableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData, LearnMethodInfo, MoveParents } from "../lib/lib";
 import { DataLoader } from "./dataLoader";
+import is from "@sindresorhus/is";
+import { performance } from "perf_hooks";
 
 export class DataLib {
     /** Pokemon: Move: Movedata where Movedata includes parents and other info
@@ -29,32 +31,79 @@ export class DataLib {
      */
     public static POKEMON_DATA: AllPokemonData = {};
 
+    //! # === CONTRUCTOR === #
+    public static init(forceLoad = false) {
+        let startTime = performance.now();
+
+        //! Move sources
+        for (const pokemon in this.POKEMON_DATA) {
+            const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
+            for (const formData of pokemonData.forms) {
+                const fullName = formData.name === "" ? pokemonData.name : `${pokemonData.name}-${formData.name}`;
+                DataLib.addMoveSources(fullName, formData);
+            }
+        }
+
+        //! Move sources parents for egg moves
+        for (const move in this.MOVES_SOURCES) {
+            const pokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
+            for (const pokemon of pokemonThatLearnMove) {
+                const learnMethodInfo: LearnMethodInfo = this.MOVES_SOURCES[move][pokemon];
+                if (learnMethodInfo.learnMethods.includes("eggMoves")) {
+                    learnMethodInfo.parents = this._getParents(pokemon, move, ["levelUpMoves"]);
+                }
+            }
+        }
+
+        //! Inheritable moves
+        for (const pokemon in this.POKEMON_DATA) {
+            const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
+            for (const formData of pokemonData.forms) {
+                const fullName = formData.name === "" ? pokemonData.name : `${pokemonData.name}-${formData.name}`;
+                DataLib.addInheritableMoves(fullName, formData);
+            }
+        }
+
+        console.log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+    }
+
     //! INHERITABLE_MOVES
     public static addInheritableMoves(fullName: string, form: FormData) {
+        console.log(chalk.yellow(`Adding inheritables for ${fullName}`));
         //* Skip or initialize
         if (DataLib.INHERITABLE_MOVES.hasOwnProperty(fullName)) return;
         else DataLib.INHERITABLE_MOVES[fullName] = {};
 
+        // Alias for readability
+        const inheritableMoves = DataLib.INHERITABLE_MOVES[fullName];
+
         //* Get list of possible inheritable moves and iterate it
         const listOfInheritableMoves = this.getInheritableMoves(form);
-        for (const move_method of listOfInheritableMoves) {
-            const move = move_method[0];
-            const method = move_method[1];
+        for (const move of listOfInheritableMoves) {
             //* Initialize if first entry for move
-            if (!DataLib.INHERITABLE_MOVES[fullName].hasOwnProperty(move)) DataLib.INHERITABLE_MOVES[fullName][move] = { parents: {}, type: method };
+            const learnMethods = this.MOVES_SOURCES[move][fullName].learnMethods;
+            if (!inheritableMoves.hasOwnProperty(move)) inheritableMoves[move] = { learnMethods };
+            console.log(chalk.bgYellow(`Adding ${move}`));
 
-            //* Filter possible parents based on Egg Groups
-            const listOfPokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
-            const listOfParents = listOfPokemonThatLearnMove.filter((p) => this.shareEggGroup(p, fullName));
+            //* Get how the Pokemon learns the move
 
-            //* For each possible parent, store parent and its way of learning the move
-            for (const parentName of listOfParents) {
-                const learnedFrom = this.MOVES_SOURCES[move][parentName];
+            //* Get list of all pokemon that learn the move
+            const pokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
+            for (const pokemon of pokemonThatLearnMove) {
+                console.log(chalk.yellow(`Looking at parent ${pokemon}`));
 
-                for (const method of learnedFrom) {
-                    if (this._parentIsValid(fullName, parentName, method as MoveKeys)) {
-                        if (!DataLib.INHERITABLE_MOVES[fullName][move].parents.hasOwnProperty(parentName)) DataLib.INHERITABLE_MOVES[fullName][move].parents[parentName] = [];
-                        DataLib.INHERITABLE_MOVES[fullName][move].parents[parentName].push(method);
+                //* Get how the parents learn the move
+                const learnMethodInfo: LearnMethodInfo = this.MOVES_SOURCES[move][pokemon];
+
+                //* For each way the pokemon can learn the move, see if each parent is viable to pass it
+                for (const method of learnMethods) {
+                    console.log(chalk.magenta(`Looking at method ${method}`));
+                    if (this._parentIsValid(fullName, pokemon, method)) {
+                        console.log(chalk.magenta(`Looking at method ${method}`));
+                        // const moveParents: MoveParents = inheritableMoves[move].parents || {};
+                        // moveParents[pokemon] = learnMethodInfo;
+                        if (!this.INHERITABLE_MOVES[fullName][move].parents) this.INHERITABLE_MOVES[fullName][move].parents = {};
+                        this.INHERITABLE_MOVES[fullName][move].parents[pokemon] = learnMethodInfo;
                     }
                 }
             }
@@ -62,12 +111,17 @@ export class DataLib {
     }
 
     /** Get a list of all moves the Pokemon (form) can possibly inherit from breeding. */
-    private static getInheritableMoves(form: FormData): [string, string][] {
-        const inheritableMoves: [string, string][] = [];
+    private static getInheritableMoves(form: FormData): string[] {
+        const inheritableMoves: string[] = [];
         for (const key of INHERITABLE_KEYS) {
-            const moves = DataLoader.getFormMoves(form, key as MoveKeys) as string[]; //todo change cast if it can be LevelUpMoves
-            for (const move in moves) {
-                inheritableMoves.push([moves[move], key]);
+            const moves = DataLib.getFormMoves(form, key);
+            if (!moves) continue;
+
+            if (is.array<string>(moves, is.string)) {
+                inheritableMoves.push(...moves);
+            } else {
+                console.log(chalk.bgBlue(`IN THEREEEEE FOR KEY ${key}`));
+                moves.forEach((levelUpMoveData) => inheritableMoves.push(...levelUpMoveData.attacks));
             }
         }
         return inheritableMoves;
@@ -89,30 +143,53 @@ export class DataLib {
     public static addMoveSources(fullName: string, form: FormData) {
         //* Iterate over each possible method (json key) of obtaining a move
         for (const method of MOVE_KEYS) {
-            const moves = DataLoader.getFormMoves(form, method as MoveKeys);
+            const moves = DataLib.getFormMoves(form, method as MoveKeys);
 
             //* If there are moves
             if (!moves) continue;
 
             //* Add each move to sources
             for (const move of moves) {
-                if (typeof move !== "string") {
-                    // levelUpMove
-                    DataLib._addMoveSource(fullName, method, ...move.attacks);
-                } else {
-                    // non-levelUp move
-                    DataLib._addMoveSource(fullName, method, move);
-                }
+                DataLib._addMoveSource(fullName, method, move);
             }
         }
     }
 
-    private static _addMoveSource(pokemonName: string, method: string, ...moves: string[]) {
+    private static _addMoveSource(pokemonName: string, method: MoveKeys, moveData: string | LevelUpMoveData) {
+        const moves = typeof moveData === "string" ? [moveData] : moveData.attacks;
         for (const move of moves) {
-            if (!this.MOVES_SOURCES.hasOwnProperty(move)) this.MOVES_SOURCES[move] = {};
-            if (!this.MOVES_SOURCES[move].hasOwnProperty(pokemonName)) this.MOVES_SOURCES[move][pokemonName] = [];
-            if (!this.MOVES_SOURCES[move][pokemonName].includes(method)) this.MOVES_SOURCES[move][pokemonName].push(method);
+            // Alias for readability
+            const sources = this.MOVES_SOURCES;
+
+            //* Initialize move if it doesn't exist
+            if (!sources.hasOwnProperty(move)) sources[move] = {};
+
+            //* Initialize parent for move if it doesn't exist
+            if (!sources[move].hasOwnProperty(pokemonName)) sources[move][pokemonName] = { learnMethods: [] };
+
+            //* Add learn method
+            const parentLearnMethods = sources[move][pokemonName].learnMethods;
+            if (!parentLearnMethods.includes(method)) parentLearnMethods.push(method);
+            if (method === "levelUpMoves") sources[move][pokemonName].level = (<LevelUpMoveData>moveData).level;
         }
+    }
+
+    private static _getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false) {
+        const parents: MoveParents = {};
+        //* Get list of Pokemon that learn the move
+        const listOfParents = Object.keys(this.MOVES_SOURCES[move]);
+
+        //* For each possible parent, store parent and its way of learning the move
+        for (const parentName of listOfParents) {
+            const pLearnMethodInfo: LearnMethodInfo = this.MOVES_SOURCES[move][parentName];
+
+            for (const method of pLearnMethodInfo.learnMethods) {
+                if (!_methodsToInclude.includes(method)) continue;
+                if (!this._parentIsValid(fullName, parentName, method)) continue;
+                parents[parentName] = pLearnMethodInfo;
+            }
+        }
+        return parents;
     }
 
     //! POKEMON_DATA
@@ -128,8 +205,12 @@ export class DataLib {
     //! Helpers
     private static _parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
         // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
+
         //* If same species, return
         if (baseFullName === parentFullName) return false;
+
+        //* Check if they share an Egg Group
+        if (!this.shareEggGroup(baseFullName, parentFullName)) return false;
 
         const baseFormData: FormData = this.FORMS[baseFullName];
         const parentFormData: FormData = this.FORMS[parentFullName];
@@ -138,7 +219,7 @@ export class DataLib {
         if (parentFormData.malePercentage === 0) return false;
 
         //* Don't include Egg Moves of same evo line
-        if (this._isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
+        if (this.isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
         return true;
     }
 
@@ -159,7 +240,17 @@ export class DataLib {
         return this.FORMS[`${fullName}-${defaultForm}`];
     }
 
-    public static _isSameEvoLine(fullName1: string, fullName2: string) {
+    /**
+     *
+     * @param formData FormData object to get the moves from
+     * @param key key of object to get moves from. E.g. eggMoves
+     */
+    public static getFormMoves(formData: FormData, key: MoveKeys): string[] | LevelUpMoveData[] | undefined {
+        // console.log("Grabbing", key, "from", formData);
+        return formData.moves?.[key];
+    }
+
+    public static isSameEvoLine(fullName1: string, fullName2: string) {
         if (fullName1 === fullName2) return true;
 
         //* Build `line`s as preevos + current
@@ -168,5 +259,25 @@ export class DataLib {
 
         //* Return whether or not the 2 lines share a stage
         return line1.some((stage) => line2.includes(stage));
+    }
+
+    public static getParents(fullName: string, move: string, deep = false): MoveParents {
+        const _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves"];
+        const parents: MoveParents = {};
+        //* Filter possible parents based on Egg Groups
+        const listOfPokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
+        const listOfParents = listOfPokemonThatLearnMove.filter((p) => this.shareEggGroup(p, fullName));
+
+        //* For each possible parent, store parent and its way of learning the move
+        for (const parentName of listOfParents) {
+            const learnedFrom = this.MOVES_SOURCES[move][parentName].learnMethods;
+
+            for (const method of learnedFrom) {
+                if (!_methodsToInclude.includes(method)) continue;
+                if (!this._parentIsValid(fullName, parentName, method)) continue;
+                parents[parentName] = this.MOVES_SOURCES[move][parentName];
+            }
+        }
+        return parents;
     }
 }
