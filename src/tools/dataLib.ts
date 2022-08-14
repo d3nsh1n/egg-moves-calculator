@@ -4,6 +4,7 @@ import { MoveSources, EggGroupsLib, InheritableMoves, MOVE_KEYS, INHERITABLE_KEY
 import { DataLoader } from "./dataLoader";
 import is from "@sindresorhus/is";
 import { performance } from "perf_hooks";
+import fs from "fs-extra";
 
 export class DataLib {
     /** Pokemon: Move: Movedata where Movedata includes parents and other info
@@ -50,7 +51,7 @@ export class DataLib {
             for (const pokemon of pokemonThatLearnMove) {
                 const learnMethodInfo: LearnMethodInfo = this.MOVES_SOURCES[move][pokemon];
                 if (learnMethodInfo.learnMethods.includes("eggMoves")) {
-                    learnMethodInfo.parents = this._getParents(pokemon, move, ["levelUpMoves"]);
+                    learnMethodInfo.parents = JSON.parse(JSON.stringify(this._getParents(pokemon, move, ["levelUpMoves"])));
                 }
             }
         }
@@ -69,7 +70,6 @@ export class DataLib {
 
     //! INHERITABLE_MOVES
     public static addInheritableMoves(fullName: string, form: FormData) {
-        console.log(chalk.yellow(`Adding inheritables for ${fullName}`));
         //* Skip or initialize
         if (DataLib.INHERITABLE_MOVES.hasOwnProperty(fullName)) return;
         else DataLib.INHERITABLE_MOVES[fullName] = {};
@@ -83,25 +83,18 @@ export class DataLib {
             //* Initialize if first entry for move
             const learnMethods = this.MOVES_SOURCES[move][fullName].learnMethods;
             if (!inheritableMoves.hasOwnProperty(move)) inheritableMoves[move] = { learnMethods };
-            console.log(chalk.bgYellow(`Adding ${move}`));
 
             //* Get how the Pokemon learns the move
 
             //* Get list of all pokemon that learn the move
             const pokemonThatLearnMove = Object.keys(this.MOVES_SOURCES[move]);
             for (const pokemon of pokemonThatLearnMove) {
-                console.log(chalk.yellow(`Looking at parent ${pokemon}`));
-
                 //* Get how the parents learn the move
                 const learnMethodInfo: LearnMethodInfo = this.MOVES_SOURCES[move][pokemon];
 
                 //* For each way the pokemon can learn the move, see if each parent is viable to pass it
                 for (const method of learnMethods) {
-                    console.log(chalk.magenta(`Looking at method ${method}`));
                     if (this._parentIsValid(fullName, pokemon, method)) {
-                        console.log(chalk.magenta(`Looking at method ${method}`));
-                        // const moveParents: MoveParents = inheritableMoves[move].parents || {};
-                        // moveParents[pokemon] = learnMethodInfo;
                         if (!this.INHERITABLE_MOVES[fullName][move].parents) this.INHERITABLE_MOVES[fullName][move].parents = {};
                         this.INHERITABLE_MOVES[fullName][move].parents[pokemon] = learnMethodInfo;
                     }
@@ -120,7 +113,6 @@ export class DataLib {
             if (is.array<string>(moves, is.string)) {
                 inheritableMoves.push(...moves);
             } else {
-                console.log(chalk.bgBlue(`IN THEREEEEE FOR KEY ${key}`));
                 moves.forEach((levelUpMoveData) => inheritableMoves.push(...levelUpMoveData.attacks));
             }
         }
