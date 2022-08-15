@@ -18,7 +18,9 @@ export type MoveParents = {
     [parent: string]: LearnMethodInfo;
 };
 
-//! Libraries
+//! # === LIBRARIES === #
+
+//! INHERITABLE_MOVES
 export type InheritableMoves = {
     [pokemon: string]: {
         [move: string]: LearnMethodInfo;
@@ -44,7 +46,7 @@ export type AllPokemonData = {
     [pokemon: string]: PokemonData;
 };
 
-//! Functional
+//! # === MOVE SUGGESTIONS === #
 export type SuggestedMove = {
     move: string;
     usage: number;
