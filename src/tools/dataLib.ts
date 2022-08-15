@@ -107,7 +107,7 @@ export class DataLib {
             for (const pokemon of pokemonThatLearnMove) {
                 const learnMethodInfo: LearnMethodInfo = this.MOVE_PARENTS[move][pokemon];
                 if (learnMethodInfo.learnMethods.includes("eggMoves")) {
-                    learnMethodInfo.parents = JSON.parse(JSON.stringify(this._getParents(pokemon, move, ["levelUpMoves"])));
+                    learnMethodInfo.parents = JSON.parse(JSON.stringify(this.getParents(pokemon, move, ["levelUpMoves"])));
                 }
             }
         }
@@ -310,7 +310,7 @@ export class DataLib {
         return line1.some((stage) => line2.includes(stage));
     }
 
-    private static _getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false) {
+    public static getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false) {
         const parents: MoveParents = {};
         //* Get list of Pokemon that learn the move
         const listOfParents = Object.keys(this.MOVES_SOURCES[move]);
@@ -334,5 +334,11 @@ export class DataLib {
         // Return deepcopy of object, to get rid of references to MOVE_SOURCES, and avoid circular objects
         const deepCopy = JSON.parse(JSON.stringify(parents));
         return deepCopy;
+    }
+
+    public static forEachPokemon(callback: (pokemonData: PokemonData) => void) {
+        for (const pokemon in DataLib.POKEMON_DATA) {
+            callback(this.POKEMON_DATA[pokemon]);
+        }
     }
 }
