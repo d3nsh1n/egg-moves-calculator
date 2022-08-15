@@ -8,6 +8,7 @@ const filePath = "data/species/092_gastly.json";
 export async function main() {
   new DataLoader();
   console.log(DataLib.getDefaultForm("Mimikyu").name);
+  console.log(DataLib.isSameEvoLine("Jolteon", "Wobbuffet"));
   return;
   const moves = await suggestMoves("Cofagrigus");
   writeToTest(moves);

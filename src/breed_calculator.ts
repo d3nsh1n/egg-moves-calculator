@@ -1,9 +1,10 @@
-import { ParentInfo, SuggestedMove } from "./lib/lib";
+import { MoveParents, ParentInfo, SuggestedMove } from "./lib/lib";
 import { MoveUsage, toPixelmonMove, toPixelmonName } from "./lib/smogonlib";
 import { getMoveUsage } from "./smogon_stats";
 import { DataLib } from "./tools/dataLib";
 import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
+import is from "@sindresorhus/is";
 
 export async function suggestMoves(fullName: string) {
     let movesFound = 0;
@@ -14,43 +15,47 @@ export async function suggestMoves(fullName: string) {
     // console.log(moveUsage);
     const formName = DataLib.FORMS.hasOwnProperty(fullName) ? fullName : `${fullName}-${DataLib.getDefaultForm(fullName).name}`;
     if (!DataLib.FORMS.hasOwnProperty(formName)) {
-        console.log(chalk.red(`No data found for ${formName}`));
+        console.log(chalk.bgRed(`[ERR!] No data found for ${formName}`));
         return [];
     }
     const form = DataLib.FORMS[formName];
     const eggMoves = DataLib.getFormMoves(form, "eggMoves") as string[];
 
-    //* Grab Egg Moves first
+    //* Grab info for all moves, sort later/externally
     for (const usedMove in moveUsage) {
-        if (eggMoves?.includes(usedMove)) {
-            suggestedMoves.push({ move: usedMove, usage: moveUsage[usedMove], method: "EGG", parents: DataLib.INHERITABLE_MOVES[formName][usedMove].parents });
-            delete moveUsage[usedMove];
-            eggMoves.splice(eggMoves.indexOf(usedMove, 0), 1);
-            movesFound++;
-            if (movesFound === 4) {
-                console.log(chalk.red("Egg Moves not included:"));
-                console.log(eggMoves);
-                return suggestedMoves;
-            }
-        }
-    }
-
-    //* Fill rest
-    for (const usedMove in moveUsage) {
+        // Guard
         if (!DataLib.INHERITABLE_MOVES[formName].hasOwnProperty(usedMove)) {
-            console.log(chalk.yellow(`Could not find move ${usedMove} - Probably Level Up. Skipping...`));
+            console.log(chalk.yellow(`Could not find move ${usedMove} - Skipping...`));
             continue;
         }
-        suggestedMoves.push({ move: usedMove, usage: moveUsage[usedMove], method: "TUTOR?TODO", parents: DataLib.INHERITABLE_MOVES[formName][usedMove].parents });
-        movesFound++;
-        if (movesFound === 4) {
-            console.log(chalk.red("Egg Moves not included:"));
-            console.log(eggMoves);
-            return suggestedMoves;
+
+        // Get learn Info
+        const learnMethodInfo = DataLib.INHERITABLE_MOVES[formName][usedMove];
+        const learnMethods = learnMethodInfo.learnMethods;
+        const parents = learnMethodInfo.parents || {};
+        if (learnMethods.includes("levelUpMoves")) parents[fullName] = { learnMethods, level: learnMethodInfo.level };
+
+        // Egg Move Guard
+        if (eggMoves?.includes(usedMove) && !parents) {
+            console.log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${formName}`));
+            continue;
         }
+
+        // Build final
+        const suggestedMove: SuggestedMove = { move: usedMove, usage: moveUsage[usedMove], learnMethods };
+        if (!is.emptyObject(parents)) suggestedMove.parents = parents;
+
+        // Not sure why I did that - Possibly useless after refactoring
+        delete moveUsage[usedMove];
+
+        // Remove move from eggMoves to have a clean list of skipped ones
+        if (eggMoves.includes(usedMove)) eggMoves.splice(eggMoves.indexOf(usedMove, 0), 1);
+
+        // Push final
+        suggestedMoves.push(suggestedMove);
     }
 
-    console.log(chalk.red("Egg Moves not included:"));
+    console.log(chalk.bgGreen("[INFO] Egg Moves not included:"));
     console.log(eggMoves);
     return suggestedMoves;
 }
