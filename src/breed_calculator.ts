@@ -18,7 +18,7 @@ export async function suggestMoves(fullName: string) {
         return [];
     }
     const form = DataLib.FORMS[formName];
-    const eggMoves = DataLoader.getFormMoves(form, "eggMoves") as string[];
+    const eggMoves = DataLib.getFormMoves(form, "eggMoves") as string[];
 
     //* Grab Egg Moves first
     for (const usedMove in moveUsage) {

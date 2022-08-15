@@ -10,7 +10,8 @@ import { getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calcula
 const filePath = "data/species/092_gastly.json";
 
 export async function main() {
-    new DataLoader(true);
+    new DataLoader();
+    console.log(DataLib.getDefaultForm("Mimikyu").name);
 
     return;
     const moves = await suggestMoves("Cofagrigus");

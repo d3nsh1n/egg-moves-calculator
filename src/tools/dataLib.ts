@@ -38,20 +38,70 @@ export class DataLib {
         let startTime = performance.now();
 
         //! Move sources
-        for (const pokemon in this.POKEMON_DATA) {
-            const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
-            for (const formData of pokemonData.forms) {
-                const fullName = formData.name === "" ? pokemonData.name : `${pokemonData.name}-${formData.name}`;
-                DataLib.addMoveSources(fullName, formData);
-            }
+        if (is.emptyObject(this.MOVES_SOURCES) || forceLoad) {
+            this.__initMoveSources();
         }
 
         //! Move parents
-        this._addMoveParents();
-        console.log(Object.keys(this.MOVES_SOURCES).length);
-        console.log(Object.keys(this.MOVE_PARENTS).length);
+        if (is.emptyObject(this.MOVE_PARENTS) || forceLoad) {
+            this._initMoveParents();
+        }
 
-        //! Move parents for egg moves
+        //! Inheritable moves
+        if (is.emptyObject(this.INHERITABLE_MOVES) || forceLoad) {
+            this.__initInheritableMoves();
+        }
+
+        console.log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+    }
+
+    private static __initMoveSources() {
+        for (const pokemon in this.POKEMON_DATA) {
+            const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
+            // Default forms debugging
+            // if (!this.FORMS.hasOwnProperty(pokemonData.name) && !pokemonData.forms[0].eggGroups?.includes(EggGroups.Undiscovered)) console.log(chalk.red(">>", pokemonData.name), pokemonData.defaultForms);
+            for (const formData of pokemonData.forms) {
+                const fullName = formData.name === "" ? pokemonData.name : `${pokemonData.name}-${formData.name}`;
+
+                DataLib.addMoveSources(fullName, formData);
+            }
+        }
+    }
+
+    private static _initMoveParents() {
+        for (const move in this.MOVES_SOURCES) {
+            //* Initialize move if it doesn't exist
+            if (!this.MOVE_PARENTS.hasOwnProperty(move)) this.MOVE_PARENTS[move] = {};
+
+            for (const parent in this.MOVES_SOURCES[move]) {
+                // Alias, deepCopy
+                const learnMethodInfo = JSON.parse(JSON.stringify(this.MOVES_SOURCES[move][parent])) as LearnMethodInfo;
+
+                // Make an array of elements that are not "eggMoves", and if that array has elements (length > 0), there are methods other than eggMove
+                const methodsOtherThanEM = learnMethodInfo.learnMethods.filter((method) => method !== "eggMoves");
+                const isOnlyEggMove = methodsOtherThanEM.length === 0;
+
+                //* Any method has priority over Egg Moves
+                //todo Not true, consider existing breeds
+                if (!isOnlyEggMove) {
+                    const finalLearnInfo: LearnMethodInfo = { learnMethods: methodsOtherThanEM };
+
+                    // Grab level info if levelUpMove
+                    if (methodsOtherThanEM.includes("levelUpMoves")) {
+                        finalLearnInfo.level = this.MOVES_SOURCES[move][parent].level;
+                    }
+
+                    this.MOVE_PARENTS[move][parent] = finalLearnInfo;
+                    continue;
+                }
+
+                //* Only Egg Move
+                // do stuff
+                this.MOVE_PARENTS[move][parent] = learnMethodInfo;
+            }
+        }
+
+        //! Second iteration for Egg Moves
         for (const move in this.MOVE_PARENTS) {
             const pokemonThatLearnMove = Object.keys(this.MOVE_PARENTS[move]);
             for (const pokemon of pokemonThatLearnMove) {
@@ -61,8 +111,9 @@ export class DataLib {
                 }
             }
         }
+    }
 
-        //! Inheritable moves
+    private static __initInheritableMoves() {
         for (const pokemon in this.POKEMON_DATA) {
             const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
             for (const formData of pokemonData.forms) {
@@ -70,8 +121,6 @@ export class DataLib {
                 DataLib.addInheritableMoves(fullName, formData);
             }
         }
-
-        console.log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
 
     //! INHERITABLE_MOVES
@@ -114,11 +163,12 @@ export class DataLib {
                 if (!this._parentIsValid(fullName, pokemon, "eggMoves")) continue;
 
                 //* Get how the parents learn the move
-                const learnMethodInfo: LearnMethodInfo = this.MOVE_PARENTS[move][pokemon];
+                const plearnMethodInfo: LearnMethodInfo = this.MOVE_PARENTS[move][pokemon];
 
-                let parents = this.INHERITABLE_MOVES[fullName][move].parents;
-                if (!inheritableMoves[move].parents) inheritableMoves[move].parents = {};
-                inheritableMoves[move].parents[pokemon] = learnMethodInfo;
+                let learnMethodInfo = this.INHERITABLE_MOVES[fullName][move];
+                if (!learnMethodInfo.parents) learnMethodInfo.parents = {};
+                learnMethodInfo.parents[pokemon] = plearnMethodInfo;
+                //! If it stops working, remove learnMethodInfo, use fullpath, and assert (although it should be fine, it's an object, should grab ref)
             }
         }
     }
@@ -136,7 +186,8 @@ export class DataLib {
                 moves.forEach((levelUpMoveData) => inheritableMoves.push(...levelUpMoveData.attacks));
             }
         }
-        return inheritableMoves;
+        const unique = [...new Set(inheritableMoves)];
+        return unique;
     }
 
     //! EGG_GROUPS
@@ -186,40 +237,6 @@ export class DataLib {
         }
     }
 
-    private static _addMoveParents() {
-        for (const move in this.MOVES_SOURCES) {
-            //* Initialize move if it doesn't exist
-            if (!this.MOVE_PARENTS.hasOwnProperty(move)) this.MOVE_PARENTS[move] = {};
-
-            for (const parent in this.MOVES_SOURCES[move]) {
-                // Alias, deepCopy
-                const learnMethodInfo = JSON.parse(JSON.stringify(this.MOVES_SOURCES[move][parent])) as LearnMethodInfo;
-
-                // Make an array of elements that are not "eggMoves", and if that array has elements (length > 0), there are methods other than eggMove
-                const methodsOtherThanEM = learnMethodInfo.learnMethods.filter((method) => method !== "eggMoves");
-                const isOnlyEggMove = methodsOtherThanEM.length === 0;
-
-                //* Any method has priority over Egg Moves
-                //todo Not true, consider existing breeds
-                if (!isOnlyEggMove) {
-                    const finalLearnInfo: LearnMethodInfo = { learnMethods: methodsOtherThanEM };
-
-                    // Grab level info if levelUpMove
-                    if (methodsOtherThanEM.includes("levelUpMoves")) {
-                        finalLearnInfo.level = this.MOVES_SOURCES[move][parent].level;
-                    }
-
-                    this.MOVE_PARENTS[move][parent] = finalLearnInfo;
-                    continue;
-                }
-
-                //* Only Egg Move
-                // do stuff
-                this.MOVE_PARENTS[move][parent] = learnMethodInfo;
-            }
-        }
-    }
-
     //! POKEMON_DATA
     public static addPokemonData(pokemonData: PokemonData) {
         this.POKEMON_DATA[pokemonData.name] = pokemonData;
@@ -260,12 +277,14 @@ export class DataLib {
         return false;
     }
 
-    public static getDefaultForm(fullName: string): FormData {
-        const defaultForm = this.POKEMON_DATA[fullName].defaultForms[0];
-        if (defaultForm !== fullName) console.log(chalk.yellow(`WARN: Differently named default form: ${defaultForm}`));
-        if (this.POKEMON_DATA[fullName].defaultForms.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected.`));
+    public static getDefaultForm(pokemonName: string): FormData {
+        const defaultForm = this.POKEMON_DATA[pokemonName].defaultForms[0];
+        const fullName = defaultForm === "" ? pokemonName : `${pokemonName}-${defaultForm}`;
 
-        return this.FORMS[`${fullName}-${defaultForm}`];
+        if (fullName !== pokemonName) console.log(chalk.yellow(`WARN: Differently named default form: ${defaultForm}`));
+        if (this.POKEMON_DATA[pokemonName].defaultForms.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected for ${pokemonName}.`));
+
+        return this.FORMS[fullName];
     }
 
     /**

@@ -8,7 +8,7 @@ export async function getPokemonUsage(fullName: string) {
     return usageStats;
 }
 
-export async function getMoveUsage(fullName: string) {
+export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
     const smogonName = toSmogonName(fullName);
     try {
         const usageStats: UsageStats = (await getPokemonUsage(smogonName)) as UsageStats;

@@ -12,11 +12,13 @@ export const MISFORMS: string[] = [];
 
 export class DataLoader {
     private static readonly dataDir = "data";
-    private static readonly rawDataDir = `${this.dataDir}/test2`;
-    private static readonly inheritableMovesPath = `${this.dataDir}/inheritable_moves.json`;
-    private static readonly eggGroupsPath = `${this.dataDir}/egg_groups.json`;
-    private static readonly moveSourcesPath = `${this.dataDir}/move_sources.json`;
-    private static readonly formsPath = `${this.dataDir}/forms.json`;
+    private static readonly dataOutDir = `${this.dataDir}/out`;
+    private static readonly rawDataDir = `${this.dataDir}/species`;
+    private static readonly inheritableMovesPath = `${this.dataOutDir}/inheritable_moves.json`;
+    private static readonly eggGroupsPath = `${this.dataOutDir}/egg_groups.json`;
+    private static readonly moveSourcesPath = `${this.dataOutDir}/move_sources.json`;
+    private static readonly moveParentsPath = `${this.dataOutDir}/move_parents.json`;
+    private static readonly formsPath = `${this.dataOutDir}/forms.json`;
 
     //! Constructor Methods
     //#region Constructor Methods
@@ -30,19 +32,25 @@ export class DataLoader {
         DataLib.INHERITABLE_MOVES = DataLoader.TryLoadFile(DataLoader.inheritableMovesPath, {} as InheritableMoves, forceLoad);
         DataLib.EGG_GROUPS_LIB = DataLoader.TryLoadFile(DataLoader.eggGroupsPath, {} as EggGroupsLib, forceLoad);
         DataLib.MOVES_SOURCES = DataLoader.TryLoadFile(DataLoader.moveSourcesPath, {} as MoveSources, forceLoad);
+        DataLib.MOVE_PARENTS = DataLoader.TryLoadFile(DataLoader.moveParentsPath, {} as MoveSources, forceLoad);
 
         const filenames = DataLoader.getListOfDataFiles(DataLoader.rawDataDir);
         DataLoader.__loadFiles(filenames);
+        console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+
+        //* Initialize DataLib after loading Libraries
         DataLib.init(forceLoad);
 
         //* Write Files
-        console.log(MISMOVES);
+        // console.log(MISMOVES);
+        startTime = performance.now();
         fs.writeFileSync(DataLoader.eggGroupsPath, JSON.stringify(DataLib.EGG_GROUPS_LIB, null, 4));
         fs.writeFileSync(DataLoader.moveSourcesPath, JSON.stringify(DataLib.MOVES_SOURCES, null, 4));
-        fs.writeFileSync(DataLoader.formsPath, JSON.stringify(DataLib.FORMS, null, 4));
+        // fs.writeFileSync(DataLoader.formsPath, JSON.stringify(DataLib.FORMS, null, 4));
+        fs.writeFileSync("data/out/move_parents.json", JSON.stringify(DataLib.MOVE_PARENTS, null, 4));
         fs.writeFileSync(DataLoader.inheritableMovesPath, JSON.stringify(DataLib.INHERITABLE_MOVES, null, 4));
+        console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
 
-        console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
         //!
         // DataLoader.debug(filenames);
     }
