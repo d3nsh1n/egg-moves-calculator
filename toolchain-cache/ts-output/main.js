@@ -26,6 +26,12 @@ export async function main() {
             inMoves: ["D"],
             notInMoves: ["A", "B", "C"],
         },
+        {
+            parent: "par4",
+            amount: 1,
+            inMoves: ["D", "B"],
+            notInMoves: ["A", "C"],
+        },
     ];
     const paths = getBreedingPaths(sortedParentsInfo);
     console.log(chalk.bgRed("RESULT"));

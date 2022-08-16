@@ -143,14 +143,17 @@ export function findCoParent(suggestedMoves: SuggestedMove[], parentsInfo: Paren
 export function getBreedingPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
     const breedingPaths: BreedingPath[] = [];
     for (const parent of sortedParentsInfo) {
-        breedingPaths.push(_getSinglePath(sortedParentsInfo));
+        breedingPaths.push(..._getParentPaths(sortedParentsInfo));
         console.log(chalk.bgMagenta("PATH DONE"));
         sortedParentsInfo.splice(sortedParentsInfo.indexOf(parent, 0), 1);
+        //TODO WATCH THE SPLICING, SOMETHING IS WRONG
+        console.log("remaining:", sortedParentsInfo);
     }
     return breedingPaths;
 }
 
-export function _getSinglePath(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath {
+export function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
+    sortedParentsInfo = [...sortedParentsInfo];
     console.log(chalk.bgBlue("CALLED"));
     console.log(
         "sortedParents:",
@@ -162,7 +165,7 @@ export function _getSinglePath(sortedParentsInfo: ParentInfo[], moves?: string[]
     // Guard
     if (sortedParentsInfo.length === 0) {
         console.log(chalk.yellow("[WARN] Empty parentInfo array provided. Could not generate breeding paths."));
-        return { length: 0, parents: [], parentInfo: {} };
+        return [];
     }
 
     // If moves is undefined, assign the combination of inMoves and notInMoves of a (the first) parent
@@ -173,26 +176,47 @@ export function _getSinglePath(sortedParentsInfo: ParentInfo[], moves?: string[]
     // Create a new path if one was not provided (normal/first call, not recursive)
     currentPath ||= { length: 0, parents: [], parentInfo: {} };
 
+    // Result
+    const parentPaths: BreedingPath[] = [];
+
     // It's important&& for the parentInfo Array to be sorted, as we want the parent with the most provided moves to be first
     // (Or, later, the one that's considered "best")
     // &&(but not really, unless we stop after X found or at a path threshold)
     for (const mainParent of sortedParentsInfo) {
         // Check if parent completes the path
         const remainingMoves = moves.filter((move) => mainParent.notInMoves.includes(move));
+        //? Search all parents, in case there are multiple that complete the path in the same step
         if (remainingMoves.length === 0) {
-            // Found last parent
-            __addParent(currentPath, mainParent);
-            return currentPath;
+            console.log(chalk.greenBright(mainParent.parent, "completes the path."));
+            // Found (a) last parent
+
+            // Make a deep copy of current path
+            const aFullPath = JSON.parse(JSON.stringify(currentPath));
+
+            // Add the parent to complete it
+            __addParent(aFullPath, mainParent);
+
+            // Add it to paths
+            parentPaths.push(aFullPath);
         }
     }
+
+    // If at least one parent completed the path, return the completed paths
+    //! THIS ENSURES THAT SMALLER PATHS HAVE PRIORITY. IF YOU WANT TO GET EVERY PATH, DONT RETURN HERE, BUT FIND A WAY TO PASS THE COMPLETED PATHS
+    //! AND BUILD ON THEM ON FURTHER ITERATIONS (WITH MORE PARENTS)
+    if (parentPaths.length > 0) {
+        return parentPaths;
+    }
+
     //* No parent completed the path
+    console.log(chalk.red("No parents completed the path."));
     // Get the next parent that makes progress
     // todo Better criteria, like type/ownership
     const nextParent = __getNextForMove(sortedParentsInfo, moves);
     if (nextParent === null) {
         console.log(chalk.yellow("[WARN] No parents found to complete path. Unobtainable egg move?"));
         console.log(moves);
-        return { length: 0, parents: [], parentInfo: {} };
+        return [];
     }
 
     // Remove parent from array
@@ -200,11 +224,12 @@ export function _getSinglePath(sortedParentsInfo: ParentInfo[], moves?: string[]
     // Add parent to make progress, call next iteration
     __addParent(currentPath, nextParent);
     moves = moves.filter((move) => nextParent.notInMoves.includes(move));
+    console.log(chalk.red(`Forcing progress with ${nextParent.parent}.`));
 
     // Recursively call this function for the remaining moves
-    currentPath = _getSinglePath(sortedParentsInfo, moves, currentPath);
+    const res = _getParentPaths(sortedParentsInfo, moves, currentPath);
 
-    return currentPath;
+    return res;
 }
 
 function __getNextForMove(sortedParentsInfo: ParentInfo[], moves: string[]): ParentInfo | null {
