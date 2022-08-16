@@ -1,14 +1,35 @@
 import fs from "fs-extra";
-import { DataLib } from "./tools/dataLib";
 import "./tools/dataLoader";
 import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
-import { getMinimumParents, suggestMoves } from "./breed_calculator";
+import { getBreedingPaths, getMinimumParents, suggestMoves } from "./breed_calculator";
 const filePath = "data/species/092_gastly.json";
 export async function main() {
     new DataLoader();
-    console.log(DataLib.getDefaultForm("Mimikyu").name);
-    console.log(DataLib.isSameEvoLine("Jolteon", "Wobbuffet"));
+    const m = ["A", "B", "C", "D"];
+    const sortedParentsInfo = [
+        {
+            parent: "par1",
+            amount: 3,
+            inMoves: ["A", "B", "C"],
+            notInMoves: ["D"],
+        },
+        {
+            parent: "par2",
+            amount: 3,
+            inMoves: ["A", "D", "C"],
+            notInMoves: ["B"],
+        },
+        {
+            parent: "par3",
+            amount: 1,
+            inMoves: ["D"],
+            notInMoves: ["A", "B", "C"],
+        },
+    ];
+    const paths = getBreedingPaths(sortedParentsInfo);
+    console.log(chalk.bgRed("RESULT"));
+    console.log(paths);
     return;
     const moves = await suggestMoves("Cofagrigus");
     writeToTest(moves);

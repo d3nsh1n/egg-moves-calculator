@@ -60,3 +60,11 @@ export type ParentInfo = {
     inMoves: string[];
     notInMoves: string[];
 };
+
+export type BreedingPath = {
+    length: number;
+    parents: string[];
+    parentInfo: {
+        [parent: string]: ParentInfo;
+    };
+};
