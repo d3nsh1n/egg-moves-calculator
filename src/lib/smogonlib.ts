@@ -30,10 +30,19 @@ export function toPixelmonName(arg: any): any {
     if (is.string(arg)) {
         //* Convert single string
         const smogonName = arg;
-        let pixelmonName = smogonName.replace("alola", "alolan").replace("galar", "galarian");
+        const [species, form] = getSpeciesForm(smogonName);
+
+        // Convert regional forms from smogon convention to pixelmon convention
+        //? Just replacing doesn't work (like it does in toSmogonName), since these are substrings of the full ones, so you end up with "galarianian"
+        //todo Make a cool regex?
+        let pixelmonName = smogonName;
+        if (form === "alola") {
+            pixelmonName = pixelmonName.replace("alola", "alolan");
+        } else if (form === "galar") {
+            pixelmonName = pixelmonName.replace("galar", "galarian");
+        }
 
         // Turn "Mimikyu" into "Mimikyu-disguise" for example
-        const [species, form] = getSpeciesForm(pixelmonName);
         pixelmonName = DataLib.FORMS.hasOwnProperty(pixelmonName) ? pixelmonName : `${pixelmonName}-${getDefaultForm(species).name}`;
 
         //

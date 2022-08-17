@@ -33,7 +33,12 @@ export async function suggestMoves(fullName: string) {
     for (const usedMove in moveUsage) {
         // Guard
         if (!DataLib.INHERITABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
-            console.log(chalk.yellow(`Could not find move ${usedMove} - Skipping...`));
+            console.log(chalk.yellow(`Not inheritable: ${usedMove}`));
+            if (DataLib.MOVES_SOURCES[usedMove]?.[fullName] !== undefined) {
+                console.log(DataLib.MOVES_SOURCES[usedMove][fullName].learnMethods);
+            } else {
+                console.log(chalk.yellow(`Could not find data in MoveSources: ${usedMove}/${fullName}`));
+            }
             continue;
         }
 

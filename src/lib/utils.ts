@@ -37,12 +37,12 @@ export function getDefaultForm(pokemonName: string): FormData {
     const defaultForm = DataLib.POKEMON_DATA[pokemonName].defaultForms?.[0];
     if (!defaultForm) {
         const fallback = DataLib.POKEMON_DATA[pokemonName].forms[0];
-        console.log(chalk.yellow("No default forms on", pokemonName, ". Returning forms[0]:", fallback.name));
+        console.log(chalk.yellow(`No default forms on ${pokemonName}. Returning forms[0]: "${fallback.name}"`));
         return fallback;
     }
     const fullName = defaultForm === "" ? pokemonName : `${pokemonName}-${defaultForm}`;
 
-    if (fullName !== pokemonName) console.log(chalk.yellow(`WARN: Differently named default form: ${defaultForm}`));
+    if (fullName !== pokemonName) console.log(chalk.yellow.bgGreen(`INFO: Non "" default form: ${defaultForm}`));
     if (DataLib.POKEMON_DATA[pokemonName].defaultForms!.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected for ${pokemonName}.`));
 
     return DataLib.FORMS[fullName];
@@ -103,19 +103,16 @@ export function getSpeciesForm(fullName: string): [string, string] {
 }
 
 export function getBasic(evoName: string): string {
-    console.log(chalk.green("Checking", evoName));
+    evoName = toPixelmonName(evoName);
     const [species, form] = getSpeciesForm(evoName);
 
-    evoName = toPixelmonName(evoName);
     const evoFormData = DataLib.FORMS[evoName];
     if (!evoFormData) {
         console.log(chalk.red("No form data found for", evoName));
         return "";
     }
-    console.log(DataLib.FORMS[evoName].preEvolutions);
     const preEvolutions = DataLib.FORMS[evoName].preEvolutions || [];
     const isBasic = preEvolutions?.length === 0;
-    console.log(isBasic);
     const basicSpecies = isBasic ? species : _getBasicPreEvo(preEvolutions as string[]);
 
     if (hasForm(basicSpecies, form)) {
