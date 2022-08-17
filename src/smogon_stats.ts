@@ -11,7 +11,7 @@ export async function getPokemonUsage(fullName: string) {
     return usageStats;
 }
 
-export async function getMoveUsage2(fullName: string): Promise<MoveUsage> {
+export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
     const smogonName = toSmogonName(fullName);
     try {
         const usageStats: UsageStats = (await getPokemonUsage(smogonName)) as UsageStats;
@@ -28,7 +28,7 @@ export async function getMoveUsage2(fullName: string): Promise<MoveUsage> {
 }
 
 //! LOCAL OFFLINE
-export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
+export async function getMoveUsage2(fullName: string): Promise<MoveUsage> {
     const usage = JSON.parse(fs.readFileSync(`data/usage_stats/${fullName.toLowerCase()}.json`).toString());
     //!
     const smogonName = toSmogonName(fullName);

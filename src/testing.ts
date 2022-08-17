@@ -29,6 +29,35 @@ const sortedParentsInfo: ParentInfo[] = [
         notInMoves: ["A", "C"],
     },
 ];
-const paths = getBreedingPaths(sortedParentsInfo);
-console.log(chalk.bgRed("RESULT"));
-console.log(paths);
+export const sortedParentsInfo2: ParentInfo[] = [
+    {
+        parent: "par1",
+        amount: 1,
+        inMoves: ["A"],
+        notInMoves: ["B", "C", "D"],
+    },
+    {
+        parent: "par2",
+        amount: 1,
+        inMoves: ["B"],
+        notInMoves: ["A", "C", "D"],
+    },
+    {
+        parent: "par2b",
+        amount: 1,
+        inMoves: ["B"],
+        notInMoves: ["A", "C", "D"],
+    },
+    {
+        parent: "par3",
+        amount: 1,
+        inMoves: ["C"],
+        notInMoves: ["B", "A", "D"],
+    },
+    {
+        parent: "par4",
+        amount: 1,
+        inMoves: ["D"],
+        notInMoves: ["B", "C", "A"],
+    },
+];

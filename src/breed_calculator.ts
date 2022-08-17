@@ -6,11 +6,10 @@ import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { move } from "fs-extra";
-import { getBasic, getFormMoves } from "./lib/utils";
+import { arrayEquals, getBasic, getFormMoves } from "./lib/utils";
+import { performance } from "perf_hooks";
 
-export async function suggestMoves(fullName: string) {
-    //todo move this on parent function call and pass it as argument here - same level code in funcs
-
+export async function suggestMoves(fullName: string, amount?: number): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
@@ -28,6 +27,7 @@ export async function suggestMoves(fullName: string) {
     //? Grab info for all moves, sort/filter (to 4 or more) before returning
     const suggestedMoves: SuggestedMove[] = [];
 
+    //todo move this on parent function call and pass it as argument here - same level code in funcs
     // Get usage stats for the Pokemon's moves (Should be the final evolution in my use cases)
     const moveUsage: MoveUsage = toPixelmonMove(await getMoveUsage(fullName)) as MoveUsage;
     for (const usedMove in moveUsage) {
@@ -68,7 +68,8 @@ export async function suggestMoves(fullName: string) {
     console.log(chalk.bgGreen("[INFO] Egg Moves not included:"));
     console.log(eggMoves);
     suggestedMoves.sort(_sortSuggested);
-    return suggestedMoves;
+    const end = amount || suggestMoves.length;
+    return suggestedMoves.slice(0, end);
 }
 
 function _sortSuggested(a: SuggestedMove, b: SuggestedMove): number {
@@ -93,7 +94,7 @@ function _sortSuggested(a: SuggestedMove, b: SuggestedMove): number {
     return 0;
 }
 
-export function getMinimumParents(suggestedMoves: SuggestedMove[]) {
+export function getMinimumParents(suggestedMoves: SuggestedMove[], shortestPathsOnly = true) {
     const parentsInfo: ParentInfo[] = getParentsInfo(suggestedMoves);
     const paths: BreedingPath[] = getBreedingPaths(parentsInfo);
 
@@ -144,30 +145,42 @@ function _sortParentsInfo(a: ParentInfo, b: ParentInfo) {
 }
 
 export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[] {
+    const startTime = performance.now();
+
     const breedingPaths: BreedingPath[] = [];
     for (const parent of sortedParentsInfo) {
         breedingPaths.push(..._getParentPaths(sortedParentsInfo));
-        console.log(chalk.bgMagenta("PATH DONE"));
         sortedParentsInfo.splice(sortedParentsInfo.indexOf(parent, 0), 1);
-        //TODO WATCH THE SPLICING, SOMETHING IS WRONG
-        console.log("remaining:", sortedParentsInfo);
     }
-    return breedingPaths;
+
+    const final: BreedingPath[] = [];
+    for (const path of breedingPaths) {
+        if (path.length === breedingPaths[0].length) {
+            final.push(path);
+        }
+
+        if (path.length < breedingPaths[0].length) console.log("AHAHAHHAHAHKJASHDFLHDSFLKDSGLKDSFL");
+    }
+
+    console.log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
+    return final;
 }
 
 function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
-    sortedParentsInfo = [...sortedParentsInfo];
-    console.log(chalk.bgBlue("CALLED"));
-    console.log(
-        "sortedParents:",
-        sortedParentsInfo.map((p) => p.parent)
-    );
-    console.log("moves:", moves);
-    console.log("currentPath:", currentPath);
+    //! Debug
+    // console.log(chalk.bgBlue("CALLED"));
+    // console.log(
+    //     "sortedParents:",
+    //     sortedParentsInfo.map((p) => p.parent)
+    // );
+    // console.log("moves:", moves);
+    // console.log("currentPath:", currentPath);
+    //!
 
+    sortedParentsInfo = [...sortedParentsInfo];
     // Guard
     if (sortedParentsInfo.length === 0) {
-        console.log(chalk.yellow("[WARN] Empty parentInfo array provided. Could not generate breeding paths."));
+        // console.log(chalk.yellow("[WARN] Empty parentInfo array provided. Could not generate breeding paths."));
         return [];
     }
 
@@ -188,9 +201,10 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
     for (const mainParent of sortedParentsInfo) {
         // Check if parent completes the path
         const remainingMoves = moves.filter((move) => mainParent.notInMoves.includes(move));
-        //? Search all parents, in case there are multiple that complete the path in the same step
+        //? Dont return, so that you search all parents, in case there are multiple that complete the path in the same step
         if (remainingMoves.length === 0) {
-            console.log(chalk.greenBright(mainParent.parent, "completes the path."));
+            // console.log(chalk.greenBright(mainParent.parent, "completes the path."));
+
             // Found (a) last parent
 
             // Make a deep copy of current path
@@ -212,39 +226,56 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
     }
 
     //* No parent completed the path
-    console.log(chalk.red("No parents completed the path."));
-    // Get the next parent that makes progress
-    // todo Better criteria, like type/ownership
-    const nextParent = __getNextForMove(sortedParentsInfo, moves);
-    if (nextParent === null) {
-        console.log(chalk.yellow("[WARN] No parents found to complete path. Unobtainable egg move?"));
+    // console.log(chalk.red("No parents completed the path."));
+
+    // See if any parents would make progress
+    const parentsThatMakeProgress = __getNextForMove(sortedParentsInfo, moves);
+    // console.log(chalk.bgBlue("Parents that make progress:"));
+    // console.log(parentsThatMakeProgress);
+    if (parentsThatMakeProgress.length === 0) {
+        console.log(chalk.yellow("[WARN] No parents found to make progress. Unobtainable egg move?"));
         console.log(moves);
         return [];
     }
 
-    // Remove parent from array
-    sortedParentsInfo.splice(sortedParentsInfo.indexOf(nextParent, 0), 1);
-    // Add parent to make progress, call next iteration
-    __addParent(currentPath, nextParent);
-    moves = moves.filter((move) => nextParent.notInMoves.includes(move));
-    console.log(chalk.red(`Forcing progress with ${nextParent.parent}.`));
+    //* Attempt progress for each parent that makes progress
+    for (const nextParent of parentsThatMakeProgress) {
+        // Assume this parent gets added, get what moves *would* be missing
+        const branchMoves = moves.filter((move) => nextParent.notInMoves.includes(move));
 
-    // Recursively call this function for the remaining moves
-    const res = _getParentPaths(sortedParentsInfo, moves, currentPath);
+        // Get parents that can make further progress, assuming this parent is already added
+        const parentsToCheck = __getNextForMove(parentsThatMakeProgress, branchMoves);
 
-    return res;
+        // Make a copy of current path, and add parent to it
+        const branchPath = JSON.parse(JSON.stringify(currentPath));
+        __addParent(branchPath, nextParent);
+        // console.log(chalk.red(`Forcing progress with ${nextParent.parent}.`));
+
+        // Recursively call this function for the remaining moves
+        const res = _getParentPaths(parentsToCheck, branchMoves, branchPath);
+        const newPaths = res.filter((p) => !_pathExists(parentPaths, p));
+        parentPaths.push(...newPaths);
+    }
+    return parentPaths;
 }
 
-function __getNextForMove(sortedParentsInfo: ParentInfo[], moves: string[]): ParentInfo | null {
+function __getNextForMove(sortedParentsInfo: ParentInfo[], moves: string[]): ParentInfo[] {
+    const parentsThatMakeProgress: ParentInfo[] = [];
     for (const parent of sortedParentsInfo) {
         for (const move of parent.inMoves) {
             if (moves.includes(move)) {
-                return parent;
+                parentsThatMakeProgress.push(parent);
             }
         }
     }
-    // None found
-    return null;
+    return parentsThatMakeProgress;
+}
+
+function _pathExists(paths: BreedingPath[], path: BreedingPath): boolean {
+    for (const p of paths) {
+        if (arrayEquals(p.parents, path.parents)) return true;
+    }
+    return false;
 }
 
 function __addParent(path: BreedingPath, parent: ParentInfo) {
