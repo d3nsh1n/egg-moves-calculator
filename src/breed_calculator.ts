@@ -6,48 +6,52 @@ import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { move } from "fs-extra";
+import { getBasic, getFormMoves } from "./lib/utils";
 
 export async function suggestMoves(fullName: string) {
-    let movesFound = 0;
-    const suggestedMoves: SuggestedMove[] = [];
+    //todo move this on parent function call and pass it as argument here - same level code in funcs
 
-    const moveUsage: MoveUsage = toPixelmonMove(await getMoveUsage(fullName)) as MoveUsage;
-    // console.log(chalk.blue("USAGE:"));
-    // console.log(moveUsage);
-    const formName = DataLib.FORMS.hasOwnProperty(fullName) ? fullName : `${fullName}-${DataLib.getDefaultForm(fullName).name}`;
-    if (!DataLib.FORMS.hasOwnProperty(formName)) {
-        console.log(chalk.bgRed(`[ERR!] No data found for ${formName}`));
+    //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
+    // Convert the name into the pixelmon convention (regional names, add default form if needed)
+    const finalEvoFullName = toPixelmonName(fullName);
+    const finalEvoFormData = DataLib.FORMS[finalEvoFullName];
+    const basicFormFullName = getBasic(finalEvoFullName);
+
+    // Guard
+    if (!DataLib.FORMS.hasOwnProperty(basicFormFullName)) {
+        console.log(chalk.bgRed(`[ERR!] No data found for ${basicFormFullName}.`));
         return [];
     }
-    const form = DataLib.FORMS[formName];
-    const eggMoves = DataLib.getFormMoves(form, "eggMoves") as string[];
+    const form = DataLib.FORMS[basicFormFullName];
+    const eggMoves = getFormMoves(form, "eggMoves") as string[];
 
-    //* Grab info for all moves, sort later/externally
+    //? Grab info for all moves, sort/filter (to 4 or more) before returning
+    const suggestedMoves: SuggestedMove[] = [];
+
+    // Get usage stats for the Pokemon's moves (Should be the final evolution in my use cases)
+    const moveUsage: MoveUsage = toPixelmonMove(await getMoveUsage(fullName)) as MoveUsage;
     for (const usedMove in moveUsage) {
         // Guard
-        if (!DataLib.INHERITABLE_MOVES[formName].hasOwnProperty(usedMove)) {
+        if (!DataLib.INHERITABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
             console.log(chalk.yellow(`Could not find move ${usedMove} - Skipping...`));
             continue;
         }
 
         // Get learn Info
-        const learnMethodInfo = DataLib.INHERITABLE_MOVES[formName][usedMove];
+        const learnMethodInfo = DataLib.INHERITABLE_MOVES[basicFormFullName][usedMove];
         const learnMethods = learnMethodInfo.learnMethods;
         const parents = learnMethodInfo.parents || {};
         if (learnMethods.includes("levelUpMoves")) parents[fullName] = { learnMethods, level: learnMethodInfo.level };
 
         // Egg Move Guard
         if (eggMoves?.includes(usedMove) && !parents) {
-            console.log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${formName}`));
+            console.log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${basicFormFullName}`));
             continue;
         }
 
         // Build final
         const suggestedMove: SuggestedMove = { move: usedMove, usage: moveUsage[usedMove], learnMethods };
         if (!is.emptyObject(parents)) suggestedMove.parents = parents;
-
-        // Not sure why I did that - Possibly useless after refactoring
-        delete moveUsage[usedMove];
 
         // Remove move from eggMoves to have a clean list of skipped ones
         if (eggMoves.includes(usedMove)) eggMoves.splice(eggMoves.indexOf(usedMove, 0), 1);
@@ -58,12 +62,35 @@ export async function suggestMoves(fullName: string) {
 
     console.log(chalk.bgGreen("[INFO] Egg Moves not included:"));
     console.log(eggMoves);
+    suggestedMoves.sort(_sortSuggested);
     return suggestedMoves;
 }
 
+function _sortSuggested(a: SuggestedMove, b: SuggestedMove): number {
+    const aIsEgg = a.learnMethods.includes("eggMoves");
+    const bIsEgg = b.learnMethods.includes("eggMoves");
+
+    // Egg moves get priority over usage. If one is not an EM, the other goes first.
+    // If both are EMs, sort by usage.
+    if (aIsEgg && bIsEgg) {
+        if (a.usage > b.usage) {
+            return -1;
+        } else if (a.usage < b.usage) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if (aIsEgg) {
+        return -1;
+    } else if (bIsEgg) {
+        return 1;
+    }
+    return 0;
+}
+
 export function getMinimumParents(suggestedMoves: SuggestedMove[]) {
-    const parentsInfo = getParentsInfo(suggestedMoves);
-    const paths: any = getBreedingPaths(parentsInfo);
+    const parentsInfo: ParentInfo[] = getParentsInfo(suggestedMoves);
+    const paths: BreedingPath[] = getBreedingPaths(parentsInfo);
 
     return paths;
 }
@@ -111,36 +138,7 @@ function _sortParentsInfo(a: ParentInfo, b: ParentInfo) {
     return 0;
 }
 
-export function findCoParent(suggestedMoves: SuggestedMove[], parentsInfo: ParentInfo[], ...parents: ParentInfo[]): ParentInfo[] {
-    let coveredMoves: string[] = [];
-    let missingMoves: string[] = [];
-
-    for (const providedParent of parents) {
-        coveredMoves.push(...providedParent.inMoves);
-        missingMoves.push(...providedParent.notInMoves);
-    }
-    coveredMoves = [...new Set(coveredMoves)];
-    missingMoves = [...new Set(missingMoves)].filter((m) => !coveredMoves.includes(m));
-
-    if (missingMoves.length === 0) return parents;
-
-    //* Scan parents for the first one that fulfills one of the missing moves
-    for (const parent of parentsInfo) {
-        // No need to check existing parents
-        if (parents.includes(parent)) continue;
-        for (const move of parent.inMoves) {
-            if (missingMoves.includes(move)) {
-                parents.push(parent);
-                // if (parents.length !== 2) return parents;
-                return findCoParent(suggestedMoves, parentsInfo, ...parents);
-            }
-        }
-    }
-    console.log(chalk.red(`Could not find parents for the following moves: ${missingMoves}`));
-    return parents;
-}
-
-export function getBreedingPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
+export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[] {
     const breedingPaths: BreedingPath[] = [];
     for (const parent of sortedParentsInfo) {
         breedingPaths.push(..._getParentPaths(sortedParentsInfo));
@@ -152,7 +150,7 @@ export function getBreedingPaths(sortedParentsInfo: ParentInfo[], moves?: string
     return breedingPaths;
 }
 
-export function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
+function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
     sortedParentsInfo = [...sortedParentsInfo];
     console.log(chalk.bgBlue("CALLED"));
     console.log(

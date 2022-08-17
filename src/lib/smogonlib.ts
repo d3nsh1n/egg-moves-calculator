@@ -1,4 +1,6 @@
 import is from "@sindresorhus/is";
+import { DataLib } from "../tools/dataLib";
+import { getDefaultForm, getSpeciesForm } from "./utils";
 
 //! Helper Functions
 //#region Helper Functions
@@ -28,7 +30,12 @@ export function toPixelmonName(arg: any): any {
     if (is.string(arg)) {
         //* Convert single string
         const smogonName = arg;
-        const pixelmonName = smogonName.replace("alola", "alolan").replace("galar", "galarian");
+        let pixelmonName = smogonName.replace("alola", "alolan").replace("galar", "galarian");
+
+        // Turn "Mimikyu" into "Mimikyu-disguise" for example
+        const [species, form] = getSpeciesForm(pixelmonName);
+        pixelmonName = DataLib.FORMS.hasOwnProperty(pixelmonName) ? pixelmonName : `${pixelmonName}-${getDefaultForm(species).name}`;
+
         //
         return pixelmonName;
     } else {

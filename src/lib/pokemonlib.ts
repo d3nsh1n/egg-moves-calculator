@@ -5,7 +5,7 @@ import { StringKeyOf } from "type-fest";
 export type PokemonData = {
     name: string;
     dex: number;
-    defaultForms: string[];
+    defaultForms?: string[];
     forms: FormData[];
     generation: number;
 };

@@ -11,7 +11,10 @@
         "removeComments": true,
         "sourceMap": true,
         "noImplicitReturns": true,
-        "baseUrl": ".",
+        "baseUrl": "src",
+        "paths": {
+            "*": ["./*"]
+        },
         "outDir": "toolchain-cache/ts-output",
         "lib": ["esnext"]
     },

@@ -50,7 +50,7 @@ export type AllPokemonData = {
 export type SuggestedMove = {
     move: string;
     usage: number;
-    learnMethods: string[];
+    learnMethods: MoveKeys[];
     parents?: MoveParents;
 };
 

@@ -1,9 +1,9 @@
 import { performance } from "perf_hooks";
-import { EggGroupsLib, InheritableMoves, MoveSources, MOVE_KEYS } from "src/lib/lib";
+import { EggGroupsLib, InheritableMoves, MoveSources, MOVE_KEYS } from "../lib/lib";
 import { DataLib } from "./dataLib";
 import chalk from "chalk";
 import fs from "fs-extra";
-import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "src/lib/pokemonlib";
+import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../lib/pokemonlib";
 import { getMoveUsage } from "../smogon_stats";
 import ky from "ky-universal";
 
