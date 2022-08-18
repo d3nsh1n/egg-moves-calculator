@@ -22,6 +22,10 @@ export class DataLib {
      * Lists every move and how each Pokemon learns it
      */
     public static MOVES_SOURCES: MoveSources = {};
+
+    /** The same as Move_Sources, but with Egg Moves being removed if they can be onbtained otherwise.
+     * e.g. [levelUpMoves, eggMoves] in Move_Sources becomes [levelUpMoves]
+     */
     public static MOVE_PARENTS: MoveSources = {};
 
     /** Fullname: FormData

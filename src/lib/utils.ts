@@ -64,8 +64,6 @@ export function isSameEvoLine(fullName1: string, fullName2: string) {
     //* Build `line`s as preevos + current
     const line1: string[] = [...(DataLib.FORMS[fullName1].preEvolutions || []), fullName1];
     const line2: string[] = [...(DataLib.FORMS[fullName2].preEvolutions || []), fullName2];
-    console.log(line1);
-    console.log(line2);
 
     //* Return whether or not the 2 lines share a stage
     return line1.some((stage) => line2.includes(stage));
