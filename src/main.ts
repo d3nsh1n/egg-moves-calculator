@@ -29,3 +29,8 @@ export function writeToTest(data: any) {
 }
 
 main();
+
+//todo Add tmMoves7 back to MOVE_KEYS, so that Ferrothorn gets Toxic by it, rather than EMs.
+//todo Then, use that as an example, to make moves that are EM + Other help with parent selection.
+//todo For example, if you have to choose between Bulbasaur and X for Egg Move Leech Seed, choose Bulbasaur due to Toxic, even if Toxic's best
+//todo way of obtaining isn't EMs
