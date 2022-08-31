@@ -6,10 +6,10 @@ import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { move } from "fs-extra";
-import { arrayEquals, getBasic, getFormMoves } from "./lib/utils";
+import { arrayEquals, deepCopy, getBasic, getFormMoves } from "./lib/utils";
 import { performance } from "perf_hooks";
 
-export async function suggestMoves(fullName: string, amount?: number): Promise<SuggestedMove[]> {
+export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
@@ -30,9 +30,15 @@ export async function suggestMoves(fullName: string, amount?: number): Promise<S
     //todo move this on parent function call and pass it as argument here - same level code in funcs
     // Get usage stats for the Pokemon's moves (Should be the final evolution in my use cases)
     const moveUsage: MoveUsage = toPixelmonMove(await getMoveUsage(fullName)) as MoveUsage;
+
+    // Add forced moves
+    for (const forcedMove of forceInclude) {
+        if (!moveUsage.hasOwnProperty(forcedMove)) moveUsage[forcedMove] = 0;
+    }
+
     for (const usedMove in moveUsage) {
         // Guard
-        if (!DataLib.INHERITABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
+        if (!DataLib.LEARNABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
             console.log(chalk.yellow(`Not inheritable: ${usedMove}`));
             if (DataLib.MOVES_SOURCES[usedMove]?.[fullName] !== undefined) {
                 console.log(DataLib.MOVES_SOURCES[usedMove][fullName].learnMethods);
@@ -43,7 +49,7 @@ export async function suggestMoves(fullName: string, amount?: number): Promise<S
         }
 
         // Get learn Info
-        const learnMethodInfo = DataLib.INHERITABLE_MOVES[basicFormFullName][usedMove];
+        const learnMethodInfo = DataLib.LEARNABLE_MOVES[basicFormFullName][usedMove];
         const learnMethods = learnMethodInfo.learnMethods;
         const parents = learnMethodInfo.parents || {};
         if (learnMethods.includes("levelUpMoves")) parents[fullName] = { learnMethods, level: learnMethodInfo.level };
@@ -96,7 +102,7 @@ function _sortSuggested(a: SuggestedMove, b: SuggestedMove): number {
 
 export function getMinimumParents(suggestedMoves: SuggestedMove[], shortestPathsOnly = true) {
     const parentsInfo: ParentInfo[] = getParentsInfo(suggestedMoves);
-    const paths: BreedingPath[] = getBreedingPaths(parentsInfo);
+    const paths: BreedingPath[] = getBreedingPaths(parentsInfo, shortestPathsOnly);
 
     return paths;
 }
@@ -144,18 +150,19 @@ function _sortParentsInfo(a: ParentInfo, b: ParentInfo) {
     return 0;
 }
 
-export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[] {
+export function getBreedingPaths(sortedParentsInfo: ParentInfo[], shortestPathsOnly = true): BreedingPath[] {
     const startTime = performance.now();
 
     const breedingPaths: BreedingPath[] = [];
-    for (const parent of sortedParentsInfo) {
-        breedingPaths.push(..._getParentPaths(sortedParentsInfo));
-        sortedParentsInfo.splice(sortedParentsInfo.indexOf(parent, 0), 1);
-    }
+    //for (const parent of sortedParentsInfo) {
+    breedingPaths.push(..._getParentPaths(sortedParentsInfo));
+    //sortedParentsInfo.splice(sortedParentsInfo.indexOf(parent, 0), 1);
+    //}
 
-    const final: BreedingPath[] = [];
+    let final: BreedingPath[] = [];
     for (const path of breedingPaths) {
-        if (path.length === breedingPaths[0].length) {
+        //todo more robust way of getting max, even if slower
+        if (path.length === breedingPaths[0].length || !shortestPathsOnly) {
             final.push(path);
         }
 
@@ -163,6 +170,7 @@ export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[
     }
 
     console.log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
+    final = [...new Set(final)];
     return final;
 }
 
@@ -173,6 +181,7 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
     //     "sortedParents:",
     //     sortedParentsInfo.map((p) => p.parent)
     // );
+
     // console.log("moves:", moves);
     // console.log("currentPath:", currentPath);
     //!
@@ -198,11 +207,13 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
     // It's important&& for the parentInfo Array to be sorted, as we want the parent with the most provided moves to be first
     // (Or, later, the one that's considered "best")
     // &&(but not really, unless we stop after X found or at a path threshold)
-    for (const mainParent of sortedParentsInfo) {
-        // Check if parent completes the path
-        const remainingMoves = moves.filter((move) => mainParent.notInMoves.includes(move));
+    for (const initialParent of sortedParentsInfo) {
+        //* Check if parent completes the path
+        const remainingMoves = moves.filter((move) => initialParent.notInMoves.includes(move));
+
         //? Dont return, so that you search all parents, in case there are multiple that complete the path in the same step
         if (remainingMoves.length === 0) {
+            // console.log(chalk.blue("we're here?", initialParent.parent));
             // console.log(chalk.greenBright(mainParent.parent, "completes the path."));
 
             // Found (a) last parent
@@ -211,7 +222,7 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
             const aFullPath = JSON.parse(JSON.stringify(currentPath));
 
             // Add the parent to complete it
-            __addParent(aFullPath, mainParent);
+            __addParent(aFullPath, initialParent);
 
             // Add it to paths
             parentPaths.push(aFullPath);
@@ -227,6 +238,7 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
 
     //* No parent completed the path
     // console.log(chalk.red("No parents completed the path."));
+    // console.log(chalk.blue("we're here"));
 
     // See if any parents would make progress
     const parentsThatMakeProgress = __getNextForMove(sortedParentsInfo, moves);
@@ -240,21 +252,21 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
 
     //* Attempt progress for each parent that makes progress
     for (const nextParent of parentsThatMakeProgress) {
-        // Assume this parent gets added, get what moves *would* be missing
+        // Assume this parent gets added, get what moves would be missing
         const branchMoves = moves.filter((move) => nextParent.notInMoves.includes(move));
 
         // Get parents that can make further progress, assuming this parent is already added
         const parentsToCheck = __getNextForMove(parentsThatMakeProgress, branchMoves);
 
-        // Make a copy of current path, and add parent to it
-        const branchPath = JSON.parse(JSON.stringify(currentPath));
+        // deepCopy to keep original ref clear when adding parent
+        const branchPath = deepCopy(currentPath);
         __addParent(branchPath, nextParent);
-        // console.log(chalk.red(`Forcing progress with ${nextParent.parent}.`));
 
         // Recursively call this function for the remaining moves
         const res = _getParentPaths(parentsToCheck, branchMoves, branchPath);
         const newPaths = res.filter((p) => !_pathExists(parentPaths, p));
         parentPaths.push(...newPaths);
+        parentsThatMakeProgress.splice(parentsThatMakeProgress.indexOf(nextParent), 1);
     }
     return parentPaths;
 }

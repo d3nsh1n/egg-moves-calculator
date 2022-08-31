@@ -1,8 +1,18 @@
-import { EggGroupsLib, MoveParents } from "./lib";
+import { EggGroupsLib, MoveLearnData, MoveParents } from "./lib";
 import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
 import chalk from "chalk";
 import { DataLib } from "../tools/dataLib";
 import { toPixelmonName } from "./smogonlib";
+import is from "@sindresorhus/is";
+
+export function getListOfParents(form: string, move: string): string[] {
+    const out: string[] = [];
+    const formData: FormData = DataLib.getForm(form);
+
+    for (const pokemon in DataLib.getPokemonInEggGroups(...formData.eggGroups)) {
+        if (parentIsValid(form, pokemon, ))
+    }
+}
 
 export function parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
     // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
@@ -25,10 +35,12 @@ export function parentIsValid(baseFullName: string, parentFullName: string, meth
 }
 
 export function shareEggGroup(fullName1: string, fullName2: string): boolean {
+    const [species1, form1] = getSpeciesForm(fullName1);
+    const [species2, form2] = getSpeciesForm(fullName2);
     for (const group in DataLib.EGG_GROUPS_LIB) {
         const listOfPokemonInGroup = DataLib.EGG_GROUPS_LIB[group as keyof EggGroupsLib];
         if (!listOfPokemonInGroup) throw console.log(chalk.red("!ERR: Could not read list of Pokemon in group", group));
-        if (listOfPokemonInGroup.includes(fullName1) && listOfPokemonInGroup.includes(fullName2)) return true;
+        if (listOfPokemonInGroup.includes(species1) && listOfPokemonInGroup.includes(species2)) return true;
     }
     return false;
 }
@@ -153,4 +165,29 @@ export function arrayEquals<T>(arr1: T[], arr2: T[], orderMatters = false): bool
         if (!arr2.includes(element)) return false;
     }
     return true;
+}
+export function deepCopy<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+/** Extract Move Learn Data - Uses a unified format for moves, and returns array in case of multiple moves from the same level in LevelUpMoveData */
+export function getMoveLearnData(move: string | LevelUpMoveData, method: MoveKeys): MoveLearnData[] {
+    if (is.string(move)) {
+        return [
+            {
+                name: move,
+                method,
+            },
+        ];
+    } else {
+        const out: MoveLearnData[] = [];
+        for (const m of move.attacks) {
+            out.push({
+                name: m,
+                method,
+                level: move.level,
+            });
+        }
+        return out;
+    }
 }

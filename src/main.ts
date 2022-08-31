@@ -7,15 +7,14 @@ import { getMoveUsage, getPokemonUsage } from "./smogon_stats";
 import { getBreedingPaths, getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calculator";
 import { ParentInfo } from "./lib/lib";
 import { getBasic, getSpeciesForm } from "./lib/utils";
-import { sortedParentsInfo2 } from "./testing";
 
 // const filePath = "data/species/092_gastly.json";
 const filePath = "data/species/092_gastly.json";
 
 export async function main() {
-    new DataLoader();
+    new DataLoader(true);
 
-    const moves = await suggestMoves("Ferrothorn", 4);
+    const moves = await suggestMoves("Ninetales", 4);
     console.log(moves);
     const paths = getMinimumParents(moves, true);
     // const parentInfoSorted: ParentInfo[] = sortedParentsInfo2;
@@ -29,6 +28,7 @@ export function writeToTest(data: any) {
 }
 
 main();
+export const SIFIS = "";
 
 //todo Add tmMoves7 back to MOVE_KEYS, so that Ferrothorn gets Toxic by it, rather than EMs.
 //todo Then, use that as an example, to make moves that are EM + Other help with parent selection.

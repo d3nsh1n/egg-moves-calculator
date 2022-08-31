@@ -4,6 +4,12 @@ export const MOVE_KEYS: MoveKeys[] = ["levelUpMoves", "tutorMoves", "eggMoves", 
 export const INHERITABLE_KEYS: MoveKeys[] = ["tutorMoves", "eggMoves", "transferMoves", "levelUpMoves"];
 
 //! # === GENERIC === #
+export type MoveLearnData = {
+    name: string;
+    method: MoveKeys;
+    level?: number;
+};
+
 export type LearnMethodInfo = {
     learnMethods: MoveKeys[];
 
@@ -21,7 +27,7 @@ export type MoveParents = {
 //! # === LIBRARIES === #
 
 //! INHERITABLE_MOVES
-export type InheritableMoves = {
+export type LearnableMoves = {
     [pokemon: string]: {
         [move: string]: LearnMethodInfo;
     };

@@ -1,32 +1,22 @@
 import chalk from "chalk";
 import { EggGroups, FormData, isPokemonData, LevelUpMoveData, MoveKeys, MovesData, PokemonData } from "../lib/pokemonlib";
-import { MoveSources, EggGroupsLib, InheritableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData, LearnMethodInfo, MoveParents } from "../lib/lib";
+import { MoveSources, EggGroupsLib, LearnableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData, LearnMethodInfo, MoveParents, MoveLearnData } from "../lib/lib";
 import { DataLoader } from "./dataLoader";
 import is from "@sindresorhus/is";
 import { performance } from "perf_hooks";
 import fs from "fs-extra";
-import { getFormMoves, getParents, parentIsValid } from "../lib/utils";
+import { getFormMoves, getMoveLearnData, getParents, parentIsValid } from "../lib/utils";
 
 export class DataLib {
-    /** Pokemon: Move: Movedata where Movedata includes parents and other info
-     * Lists every Pokemon and all the possible moves it can inherit through breeding (Egg moves + Tutors by default)
+    /** Pokemon: Move: LearnMethodInfo
+     * Lists every Pokemon and all the possible moves it can learn
      */
-    public static INHERITABLE_MOVES: InheritableMoves = {};
+    public static LEARNABLE_MOVES: LearnableMoves = {};
 
     /** EggGroup: ListOfPokemonInIt
      * List of Egg Groups and arrays of Pokemon in them
      */
     public static EGG_GROUPS_LIB: EggGroupsLib = {};
-
-    /** Move: PokemonThatLearnIt: LearnMethods
-     * Lists every move and how each Pokemon learns it
-     */
-    public static MOVES_SOURCES: MoveSources = {};
-
-    /** The same as Move_Sources, but with Egg Moves being removed if they can be onbtained otherwise.
-     * e.g. [levelUpMoves, eggMoves] in Move_Sources becomes [levelUpMoves]
-     */
-    public static MOVE_PARENTS: MoveSources = {};
 
     /** Fullname: FormData
      * Storage of each form loaded
@@ -42,19 +32,9 @@ export class DataLib {
     public static init(forceLoad = false) {
         let startTime = performance.now();
 
-        //! Move sources
-        if (is.emptyObject(this.MOVES_SOURCES) || forceLoad) {
-            this.__initMoveSources();
-        }
-
-        //! Move parents
-        if (is.emptyObject(this.MOVE_PARENTS) || forceLoad) {
-            this._initMoveParents();
-        }
-
         //! Inheritable moves
-        if (is.emptyObject(this.INHERITABLE_MOVES) || forceLoad) {
-            this.__initInheritableMoves();
+        if (is.emptyObject(this.LEARNABLE_MOVES) || forceLoad) {
+            this._generateLearnableMoves();
         }
 
         console.log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
@@ -118,12 +98,38 @@ export class DataLib {
         }
     }
 
-    private static __initInheritableMoves() {
-        for (const pokemon in this.POKEMON_DATA) {
-            const pokemonData: PokemonData = this.POKEMON_DATA[pokemon];
-            for (const formData of pokemonData.forms) {
-                const fullName = formData.name === "" ? pokemonData.name : `${pokemonData.name}-${formData.name}`;
-                DataLib.addInheritableMoves(fullName, formData);
+    private static _generateLearnableMoves() {
+        //* Initial Pass
+        for (const form in this.FORMS) {
+            this.LEARNABLE_MOVES[form] ||= {};
+
+            const formData: FormData = this.FORMS[form];
+            for (const learnMethod in formData.moves) {
+                for (const move of formData.moves[learnMethod as MoveKeys]) {
+                    // Extract Move Learn Data - Uses a unified format for moves, and returns array in case of multiple moves from the same level in LevelUpMoveData
+                    const moveLearnData: MoveLearnData[] = getMoveLearnData(move, learnMethod as MoveKeys);
+
+                    for (const m of moveLearnData) {
+                        // Alias and init
+                        let moveLearnInfo = this.LEARNABLE_MOVES[form][m.name];
+                        moveLearnInfo ||= { learnMethods: [] };
+
+                        moveLearnInfo.learnMethods.push(m.method);
+                        if (m.level) moveLearnInfo.level = m.level;
+                    }
+                }
+            }
+        }
+
+        //* Second pass, for egg moves
+        //? "Needs" to be second pass for performance reasons, wont have to go looking in data.moves again
+        for (const form in this.LEARNABLE_MOVES) {
+            for (const move in this.LEARNABLE_MOVES[form]) {
+                // Alias
+                const learnMethodInfo: LearnMethodInfo = this.LEARNABLE_MOVES[form][move];
+                if (learnMethodInfo.learnMethods.includes("eggMoves")) {
+                    learnMethodInfo.parents = getListOfParents(form, move);
+                }
             }
         }
     }
@@ -131,11 +137,11 @@ export class DataLib {
     //! INHERITABLE_MOVES
     public static addInheritableMoves(fullName: string, form: FormData) {
         //* Skip or initialize
-        if (DataLib.INHERITABLE_MOVES.hasOwnProperty(fullName)) return;
-        else DataLib.INHERITABLE_MOVES[fullName] = {};
+        if (DataLib.LEARNABLE_MOVES.hasOwnProperty(fullName)) return;
+        else DataLib.LEARNABLE_MOVES[fullName] = {};
 
         // Alias for readability
-        const inheritableMoves = DataLib.INHERITABLE_MOVES[fullName];
+        const inheritableMoves = DataLib.LEARNABLE_MOVES[fullName];
 
         //* Get list of possible inheritable moves and iterate it
         const listOfInheritableMoves = this.getInheritableMoves(form);
@@ -166,11 +172,10 @@ export class DataLib {
             const pokemonThatLearnMove = Object.keys(this.MOVE_PARENTS[move]);
             for (const pokemon of pokemonThatLearnMove) {
                 if (!parentIsValid(fullName, pokemon, "eggMoves")) continue;
-
                 //* Get how the parents learn the move
                 const plearnMethodInfo: LearnMethodInfo = this.MOVE_PARENTS[move][pokemon];
 
-                let learnMethodInfo = this.INHERITABLE_MOVES[fullName][move];
+                let learnMethodInfo = this.LEARNABLE_MOVES[fullName][move];
                 if (!learnMethodInfo.parents) learnMethodInfo.parents = {};
                 learnMethodInfo.parents[pokemon] = plearnMethodInfo;
                 //! If it stops working, remove learnMethodInfo, use fullpath, and assert (although it should be fine, it's an object, should grab ref)
@@ -205,6 +210,18 @@ export class DataLib {
             if (DataLib.EGG_GROUPS_LIB[group]!.includes(fullName)) return;
             DataLib.EGG_GROUPS_LIB[group]!.push(fullName);
         }
+    }
+
+    public static getPokemonInEggGroups(...groups: string[]) {
+        const out: string[] = [];
+        for (const group of groups) {
+            if (!Object.values(EggGroups).includes(group as EggGroups)) {
+                console.error(chalk.red(`Incorrect Egg Group provided: ${group}.`));
+                return [];
+            }
+            out.push(...this.EGG_GROUPS_LIB[group as EggGroups]!);
+        }
+        return [...new Set(out)];
     }
 
     //! MOVE_SOURCES
@@ -247,8 +264,23 @@ export class DataLib {
         this.POKEMON_DATA[pokemonData.name] = pokemonData;
     }
 
+    public static getPokemonData(species: string): PokemonData {
+        //todo read from file?
+        if (DataLib.POKEMON_DATA.hasOwnProperty(species)) {
+            console.error(chalk.red(`Could not read POKEMON_DATA for ${species}.`));
+        }
+        return this.POKEMON_DATA[species];
+    }
+
     //! FORMS
     public static addForm(fullName: string, form: FormData) {
         this.FORMS[fullName] = form;
+    }
+
+    public static getForm(fullName: string): FormData {
+        if (DataLib.FORMS.hasOwnProperty(fullName)) {
+            console.error(chalk.red(`Could not read FORM for ${fullName}.`));
+        }
+        return this.FORMS[fullName];
     }
 }
