@@ -5,15 +5,14 @@ import { DataLib } from "./tools/dataLib";
 import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
-import { move } from "fs-extra";
-import { arrayEquals, deepCopy, getBasic, getFormMoves } from "./lib/utils";
+import { arrayEquals, canInherit, deepCopy, getBasic, getFormMoves, getMoveParents } from "./lib/utils";
 import { performance } from "perf_hooks";
 
 export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
-    const finalEvoFormData = DataLib.FORMS[finalEvoFullName];
+    const finalEvoFormData = DataLib.getForm(finalEvoFullName);
     const basicFormFullName = getBasic(finalEvoFullName);
 
     // Guard
@@ -39,20 +38,24 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     for (const usedMove in moveUsage) {
         // Guard
         if (!DataLib.LEARNABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
-            console.log(chalk.yellow(`Not inheritable: ${usedMove}`));
-            if (DataLib.MOVES_SOURCES[usedMove]?.[fullName] !== undefined) {
-                console.log(DataLib.MOVES_SOURCES[usedMove][fullName].learnMethods);
+            console.log(chalk.yellow(`Base form cannot learn: ${usedMove}`));
+            if (DataLib.LEARNABLE_MOVES[fullName]?.[usedMove] !== undefined) {
+                console.log(DataLib.LEARNABLE_MOVES[fullName][usedMove].learnMethods);
             } else {
-                console.log(chalk.yellow(`Could not find data in MoveSources: ${usedMove}/${fullName}`));
+                console.log(chalk.yellow(`Could not find acquisition data for move: ${usedMove}/${fullName}!`));
             }
+            continue;
+        }
+
+        // Only suggest moves that can be bred on the Pokemon
+        if (!canInherit(basicFormFullName, usedMove)) {
             continue;
         }
 
         // Get learn Info
         const learnMethodInfo = DataLib.LEARNABLE_MOVES[basicFormFullName][usedMove];
         const learnMethods = learnMethodInfo.learnMethods;
-        const parents = learnMethodInfo.parents || {};
-        if (learnMethods.includes("levelUpMoves")) parents[fullName] = { learnMethods, level: learnMethodInfo.level };
+        const parents: MoveParents = getMoveParents(learnMethodInfo.parents || [], usedMove);
 
         // Egg Move Guard
         if (eggMoves?.includes(usedMove) && !parents) {
@@ -62,6 +65,7 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
 
         // Build final
         const suggestedMove: SuggestedMove = { move: usedMove, usage: moveUsage[usedMove], learnMethods };
+        if (learnMethods.includes("levelUpMoves")) suggestedMove.level = learnMethodInfo.level;
         if (!is.emptyObject(parents)) suggestedMove.parents = parents;
 
         // Remove move from eggMoves to have a clean list of skipped ones

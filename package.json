@@ -9,7 +9,8 @@
         "inspect": "npx nodemon --inspect .",
         "tw": "npx tsc -w",
         "bw": "npx babel -w toolchain-cache/ts-output --out-dir kernel/js --copy-files",
-        "build": "python build.py"
+        "build": "python build.py",
+        "git-clear": "git rm -r --cached ."
     },
     "devDependencies": {
         "@babel/cli": "^7.17.10",

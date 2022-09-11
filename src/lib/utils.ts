@@ -1,17 +1,58 @@
-import { EggGroupsLib, MoveLearnData, MoveParents } from "./lib";
-import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
+import { EggGroupsLib, INHERITABLE_KEYS, MoveLearnData, MoveParents } from "./lib";
+import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
 import chalk from "chalk";
 import { DataLib } from "../tools/dataLib";
 import { toPixelmonName } from "./smogonlib";
 import is from "@sindresorhus/is";
 
-export function getListOfParents(form: string, move: string): string[] {
-    const out: string[] = [];
-    const formData: FormData = DataLib.getForm(form);
+export function canInherit(fullName: string, move: string) {
+    const formData = DataLib.getForm(fullName);
 
-    for (const pokemon in DataLib.getPokemonInEggGroups(...formData.eggGroups)) {
-        if (parentIsValid(form, pokemon, ))
+    // Guard
+    if (!formData.moves) {
+        return false;
     }
+
+    for (const key of INHERITABLE_KEYS) {
+        if (!formData.moves[key]) {
+            continue;
+        }
+
+        for (const m of formData.moves[key]) {
+            const moves = getMoveLearnData(m, key);
+            for (const moveOfForm of moves) {
+                if (moveOfForm.name === move) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+export function getListOfParents(form: string, move: string, method: MoveKeys): string[] {
+    const out: string[] = [];
+
+    for (const pokemon of DataLib.getPokemonInEggGroups(...getEggGroups(form))) {
+        // Check if parent learns move
+        if (!DataLib.LEARNABLE_MOVES[pokemon].hasOwnProperty(move)) {
+            continue;
+        }
+
+        // Check if parent can pass it
+        if (parentIsValid(form, pokemon, method)) {
+            out.push(pokemon);
+        }
+    }
+    return out;
+}
+
+export function getMoveParents(parents: string[], move: string): MoveParents {
+    const out: MoveParents = {};
+    for (const parent of parents) {
+        out[parent] = DataLib.LEARNABLE_MOVES[parent][move];
+    }
+    return out;
 }
 
 export function parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
@@ -30,8 +71,34 @@ export function parentIsValid(baseFullName: string, parentFullName: string, meth
     if (parentFormData.malePercentage === 0) return false;
 
     //* Don't include Egg Moves of same evo line
+    //todo not entirely true, Dragapult Sucker Punch, todo notSoonTM
     if (isSameEvoLine(baseFullName, parentFullName) && method === "eggMoves") return false;
     return true;
+}
+
+export function getEggGroups(fullName: string): EggGroups[] {
+    // If form is "base", get Egg Groups (for performance)
+    if (DataLib.getForm(fullName).eggGroups) {
+        return DataLib.getForm(fullName).eggGroups;
+    }
+
+    // Get base species
+    const [species, form] = getSpeciesForm(fullName);
+
+    // Get default form
+    const defaultFormNames = DataLib.POKEMON_DATA[species].defaultForms;
+    if (defaultFormNames.length === 0) {
+        console.log(chalk.red(`No default forms for ${species}!`));
+        return [];
+    }
+
+    const defaultForm = getFullName(species, defaultFormNames[0]);
+    if (DataLib.formExists(defaultForm)) {
+        return DataLib.getForm(defaultForm).eggGroups;
+    } else {
+        console.log(chalk.red("Could not read FORM data for", defaultForm));
+    }
+    return [];
 }
 
 export function shareEggGroup(fullName1: string, fullName2: string): boolean {
@@ -81,35 +148,39 @@ export function isSameEvoLine(fullName1: string, fullName2: string) {
     return line1.some((stage) => line2.includes(stage));
 }
 
-export function getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false) {
-    const parents: MoveParents = {};
-    //* Get list of Pokemon that learn the move
-    const listOfParents = Object.keys(DataLib.MOVES_SOURCES[move]);
+// export function getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false): MoveParents {
+//     const parents: MoveParents = {};
+//     //* Get list of Pokemon that learn the move
+//     const listOfParents = Object.keys(DataLib.MOVES_SOURCES[move]);
 
-    //* For each possible parent, store parent and its way of learning the move
-    for (const parentName of listOfParents) {
-        // Alias
-        const storedLearnInfo = DataLib.MOVES_SOURCES[move][parentName];
+//     //* For each possible parent, store parent and its way of learning the move
+//     for (const parentName of listOfParents) {
+//         // Alias
+//         const storedLearnInfo = DataLib.MOVES_SOURCES[move][parentName];
 
-        // Filter out methods not provided by method call
-        const validMethods = storedLearnInfo.learnMethods.filter((method) => _methodsToInclude.includes(method));
-        if (validMethods.length === 0) continue;
+//         // Filter out methods not provided by method call
+//         const validMethods = storedLearnInfo.learnMethods.filter((method) => _methodsToInclude.includes(method));
+//         if (validMethods.length === 0) continue;
 
-        // Filter out methods that can't be used to inherit move from parent
-        const finalValidMethods = validMethods.filter((method) => parentIsValid(fullName, parentName, method));
-        if (finalValidMethods.length === 0) continue;
+//         // Filter out methods that can't be used to inherit move from parent
+//         const finalValidMethods = validMethods.filter((method) => parentIsValid(fullName, parentName, method));
+//         if (finalValidMethods.length === 0) continue;
 
-        // Store a deep copy of the MOVE_SOURCES sub-object
-        parents[parentName] = JSON.parse(JSON.stringify(DataLib.MOVES_SOURCES[move][parentName]));
-    }
-    // Return deepcopy of object, to get rid of references to MOVE_SOURCES, and avoid circular objects
-    const deepCopy = JSON.parse(JSON.stringify(parents));
-    return deepCopy;
-}
+//         // Store a deep copy of the MOVE_SOURCES sub-object
+//         parents[parentName] = JSON.parse(JSON.stringify(DataLib.MOVES_SOURCES[move][parentName]));
+//     }
+//     // Return deepcopy of object, to get rid of references to MOVE_SOURCES, and avoid circular objects
+//     const deepCopy = JSON.parse(JSON.stringify(parents));
+//     return deepCopy;
+// }
 
 export function getSpeciesForm(fullName: string): [string, string] {
     const species_form = fullName.split("-");
     return [species_form[0], species_form[1] || ""];
+}
+export function getFullName(species: string, form: string): string {
+    const fullName = form === "" ? species : `${species}-${form}`;
+    return fullName;
 }
 
 export function getBasic(evoName: string): string {

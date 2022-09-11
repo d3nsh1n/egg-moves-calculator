@@ -1,11 +1,12 @@
 import { performance } from "perf_hooks";
-import { EggGroupsLib, Forms, LearnableMoves, MoveSources, MOVE_KEYS } from "../lib/lib";
+import { EggGroupsLib, Forms, LearnableMoves, MOVE_KEYS } from "../lib/lib";
 import { DataLib } from "./dataLib";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../lib/pokemonlib";
 import { getMoveUsage } from "../smogon_stats";
 import ky from "ky-universal";
+import { getFullName } from "../lib/utils";
 
 export const MISMOVES: string[] = [];
 export const MISFORMS: string[] = [];
@@ -33,7 +34,6 @@ export class DataLoader {
 
         const filenames = DataLoader.getListOfDataFiles(DataLoader.rawDataDir);
         DataLoader._loadDataFromFiles(filenames);
-        ``;
         console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
 
         //* Initialize DataLib after loading Libraries
@@ -62,7 +62,7 @@ export class DataLoader {
 
             //* For each form
             for (const form of pokemonData.forms) {
-                const fullName = form.name === "" ? pokemonData.name : `${pokemonData.name}-${form.name}`;
+                const fullName = getFullName(pokemonData.name, form.name);
 
                 //* Store Form Data
                 DataLib.addForm(fullName, form);

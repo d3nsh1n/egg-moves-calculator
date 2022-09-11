@@ -14,7 +14,7 @@ export type LearnMethodInfo = {
     learnMethods: MoveKeys[];
 
     //? If egg move
-    parents?: MoveParents;
+    parents?: string[];
 
     //? If levelup move
     level?: number;
@@ -24,19 +24,35 @@ export type MoveParents = {
     [parent: string]: LearnMethodInfo;
 };
 
-//! # === LIBRARIES === #
+//! # === MOVE SUGGESTIONS === #
+export type SuggestedMove = {
+    move: string;
+    usage: number;
+    //? Note: Can't use LearnMethodInfo type here, because `parents` properties are different (string[] and MoveParents)
+    learnMethods: MoveKeys[];
+    parents?: MoveParents;
+    level?: number;
+};
 
-//! INHERITABLE_MOVES
+export type ParentInfo = {
+    parent: string;
+    amount: number;
+    inMoves: string[];
+    notInMoves: string[];
+};
+
+export type BreedingPath = {
+    length: number;
+    parents: string[];
+    // parentInfo: {
+    //     [parent: string]: ParentInfo;
+    // };
+};
+
+//! # === LIBRARIES === #
 export type LearnableMoves = {
     [pokemon: string]: {
         [move: string]: LearnMethodInfo;
-    };
-};
-
-//! MOVE_SOURCES
-export type MoveSources = {
-    [move: string]: {
-        [pokemon: string]: LearnMethodInfo;
     };
 };
 
@@ -50,27 +66,4 @@ export type Forms = {
 
 export type AllPokemonData = {
     [pokemon: string]: PokemonData;
-};
-
-//! # === MOVE SUGGESTIONS === #
-export type SuggestedMove = {
-    move: string;
-    usage: number;
-    learnMethods: MoveKeys[];
-    parents?: MoveParents;
-};
-
-export type ParentInfo = {
-    parent: string;
-    amount: number;
-    inMoves: string[];
-    notInMoves: string[];
-};
-
-export type BreedingPath = {
-    length: number;
-    parents: string[];
-    parentInfo: {
-        [parent: string]: ParentInfo;
-    };
 };

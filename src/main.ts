@@ -4,23 +4,22 @@ import "./tools/dataLoader";
 import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import { getMoveUsage, getPokemonUsage } from "./smogon_stats";
-import { getBreedingPaths, getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calculator";
+import { getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calculator";
 import { ParentInfo } from "./lib/lib";
 import { getBasic, getSpeciesForm } from "./lib/utils";
+import { getBreedingPaths } from "./path_generator";
+import { sortedParentsInfo2 } from "./testing";
 
 // const filePath = "data/species/092_gastly.json";
 const filePath = "data/species/092_gastly.json";
 
 export async function main() {
     new DataLoader(true);
-
-    const moves = await suggestMoves("Ninetales", 4);
-    console.log(moves);
-    const paths = getMinimumParents(moves, true);
-    // const parentInfoSorted: ParentInfo[] = sortedParentsInfo2;
-    // const paths = getBreedingPaths(parentInfoSorted);
-    console.log(chalk.bgRed.black("FINAL RESULT"));
-    writeToTest(paths);
+    const moves = await suggestMoves("Rillaboom", 4, ["Hammer Arm", "Growth", "Leech Seed"]);
+    const info = getParentsInfo(moves);
+    const x = getBreedingPaths(info);
+    // console.log(x);
+    writeToTest(x);
 }
 
 export function writeToTest(data: any) {
