@@ -1,6 +1,6 @@
 import is from "@sindresorhus/is";
 import { DataLib } from "../tools/dataLib";
-import { getDefaultForm, getSpeciesForm } from "./utils";
+import { getDefaultForm, getSpeciesForm } from "../lib/utils";
 
 //! Helper Functions
 //#region Helper Functions

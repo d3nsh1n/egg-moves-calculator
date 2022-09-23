@@ -1,7 +1,11 @@
 import { performance } from "perf_hooks";
 import { BreedingPath, ParentInfo } from "./lib/lib";
 import chalk from "chalk";
-import { deepCopy } from "./lib/utils";
+import { arrayEquals, deepCopy, isSameEvoLine, unboundLog } from "./lib/utils";
+
+const __CONTEXT__ = "Path Generator";
+const DEBUG = false;
+const debug = (data: any) => unboundLog(DEBUG, __CONTEXT__, data);
 
 function getCombinations(array: string[], minLength: number = 1, maxLength: number = 4) {
     const subsets: string[][] = [[]];
@@ -36,7 +40,7 @@ export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[
     const final = [...getParentPaths(sortedParentsInfo)];
     const minLength = Math.min(...final.map((e) => e.length));
 
-    console.log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
+    debug(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
     return final.filter((e) => e.length === minLength);
 }
 
@@ -80,4 +84,21 @@ function addParentToPath(path: BreedingPath, parent: ParentInfo) {
     path.length++;
     path.parents.push(parent.parent);
     // path.parentInfo[parent.parent] = parent;
+}
+
+export function compressPaths(paths: BreedingPath[]) {
+    for (const path of paths) {
+        for (const parent of path.parents) {
+            if (typeof parent !== "string") continue;
+            for (const otherPath of [...paths.slice(paths.indexOf(path) + 1)]) {
+                // if (arrayEquals(path.parents.slice(path.parents.indexOf(parent), 1), otherPath.parents.slice(path.parents.indexOf(parent), 1)))
+                for (const otherParent of otherPath.parents) {
+                    if (typeof otherParent !== "string" || otherParent === parent) continue;
+                    if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parent, 1)), otherPath.parents.slice(otherPath.parents.indexOf(otherParent, 1)))) {
+                        console.log([[parent, otherParent], ...path.parents.slice(path.parents.indexOf(parent, 1))]);
+                    }
+                }
+            }
+        }
+    }
 }

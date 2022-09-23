@@ -4,9 +4,13 @@ import { DataLib } from "./dataLib";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../lib/pokemonlib";
-import { getMoveUsage } from "../smogon_stats";
+import { getMoveUsage } from "../Smogon Data Collection/smogon_stats";
 import ky from "ky-universal";
-import { getFullName } from "../lib/utils";
+import { getFullName, unboundLog } from "../lib/utils";
+
+const DEBUG = false;
+const __CONTEXT__ = "DataLoader";
+const debug = (data: any) => unboundLog(DEBUG, __CONTEXT__, data);
 
 export const MISMOVES: string[] = [];
 export const MISFORMS: string[] = [];
@@ -34,7 +38,7 @@ export class DataLoader {
 
         const filenames = DataLoader.getListOfDataFiles(DataLoader.rawDataDir);
         DataLoader._loadDataFromFiles(filenames);
-        console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+        debug(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
 
         //* Initialize DataLib after loading Libraries
         DataLib.init(forceLoad);
@@ -44,7 +48,7 @@ export class DataLoader {
         fs.writeFileSync(DataLoader.eggGroupsPath, JSON.stringify(DataLib.EGG_GROUPS_LIB, null, 4));
         fs.writeFileSync(DataLoader.formsPath, JSON.stringify(DataLib.FORMS, null, 4));
         fs.writeFileSync(DataLoader.learnableMovesPath, JSON.stringify(DataLib.LEARNABLE_MOVES, null, 4));
-        console.log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
+        debug(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
     }
 
     /**  FORMS, POKEMON_DATA, EGG_GROUPS */
@@ -64,6 +68,9 @@ export class DataLoader {
             for (const form of pokemonData.forms) {
                 const fullName = getFullName(pokemonData.name, form.name);
 
+                if ((!form.hasOwnProperty("preEvolutions") && form.name === "alolan") || form.name === "galarian" || form.name === "hisuian") {
+                    // debug(chalk.red("AHASHHASHSHDSAHDSAHDLSAHD", fullName));
+                }
                 //* Store Form Data
                 DataLib.addForm(fullName, form);
 
@@ -71,7 +78,7 @@ export class DataLoader {
                 DataLib.addEggGroupsToLib(fullName, form);
             }
         }
-        console.log(chalk.bgGreenBright(`_loadDataFromFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+        debug(chalk.bgGreenBright(`_loadDataFromFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
     //#endregion
 
@@ -97,7 +104,7 @@ export class DataLoader {
         const files = fs.readdirSync(rawDataDir).filter((filename) => {
             //* Check if the filename matches the JSON files format
             const match = regexp.exec(filename);
-            if (match === null) console.log(chalk.red(filename, "didn't match!"));
+            if (match === null) debug(chalk.red(filename, "didn't match!"));
             return match !== null;
         });
         return files;

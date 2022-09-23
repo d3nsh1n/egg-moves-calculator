@@ -2,8 +2,28 @@ import { EggGroupsLib, INHERITABLE_KEYS, MoveLearnData, MoveParents } from "./li
 import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
 import chalk from "chalk";
 import { DataLib } from "../tools/dataLib";
-import { toPixelmonName } from "./smogonlib";
+import { toPixelmonName } from "../Smogon Data Collection/smogonlib";
 import is from "@sindresorhus/is";
+import { SetRequired } from "type-fest";
+
+const __CONTEXT__ = "";
+const LOG = false;
+const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#995599", ...data);
+
+// Chalk
+export const error = chalk.red;
+export const warn = chalk.yellow;
+
+export function unboundLog(show: boolean, context: string, color: string, ...data: any) {
+    if (show) {
+        const isBrowser = process.title === "browser";
+        if (isBrowser) {
+            console.log(`%c[${context}] -`, `color: ${color}`, ...data);
+        } else {
+            console.log(chalk.hex(color)(`[${context}] -`), ...data);
+        }
+    }
+}
 
 export function canInherit(fullName: string, move: string) {
     const formData = DataLib.getForm(fullName);
@@ -56,7 +76,7 @@ export function getMoveParents(parents: string[], move: string): MoveParents {
 }
 
 export function parentIsValid(baseFullName: string, parentFullName: string, method: MoveKeys): boolean {
-    // console.log(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
+    // debug(chalk.magenta("Checking potential parent", parentFullName, "for", baseFullName, method));
 
     //* If same species, return
     if (baseFullName === parentFullName) return false;
@@ -88,7 +108,7 @@ export function getEggGroups(fullName: string): EggGroups[] {
     // Get default form
     const defaultFormNames = DataLib.POKEMON_DATA[species].defaultForms;
     if (defaultFormNames.length === 0) {
-        console.log(chalk.red(`No default forms for ${species}!`));
+        log(chalk.red(`No default forms for ${species}!`));
         return [];
     }
 
@@ -96,7 +116,7 @@ export function getEggGroups(fullName: string): EggGroups[] {
     if (DataLib.formExists(defaultForm)) {
         return DataLib.getForm(defaultForm).eggGroups;
     } else {
-        console.log(chalk.red("Could not read FORM data for", defaultForm));
+        log(error("Could not read FORM data for", defaultForm));
     }
     return [];
 }
@@ -106,7 +126,7 @@ export function shareEggGroup(fullName1: string, fullName2: string): boolean {
     const [species2, form2] = getSpeciesForm(fullName2);
     for (const group in DataLib.EGG_GROUPS_LIB) {
         const listOfPokemonInGroup = DataLib.EGG_GROUPS_LIB[group as keyof EggGroupsLib];
-        if (!listOfPokemonInGroup) throw console.log(chalk.red("!ERR: Could not read list of Pokemon in group", group));
+        if (!listOfPokemonInGroup) throw log(chalk.red("!ERR: Could not read list of Pokemon in group", group));
         if (listOfPokemonInGroup.includes(species1) && listOfPokemonInGroup.includes(species2)) return true;
     }
     return false;
@@ -116,13 +136,13 @@ export function getDefaultForm(pokemonName: string): FormData {
     const defaultForm = DataLib.POKEMON_DATA[pokemonName].defaultForms?.[0];
     if (!defaultForm) {
         const fallback = DataLib.POKEMON_DATA[pokemonName].forms[0];
-        console.log(chalk.yellow(`No default forms on ${pokemonName}. Returning forms[0]: "${fallback.name}"`));
+        // debug(chalk.yellow(`No default forms on ${pokemonName}. Returning forms[0]: "${fallback.name}"`));
         return fallback;
     }
     const fullName = defaultForm === "" ? pokemonName : `${pokemonName}-${defaultForm}`;
 
-    if (fullName !== pokemonName) console.log(chalk.yellow.bgGreen(`INFO: Non "" default form: ${defaultForm}`));
-    if (DataLib.POKEMON_DATA[pokemonName].defaultForms!.length > 1) console.log(chalk.yellow(`WARN: Multiple default forms detected for ${pokemonName}.`));
+    if (fullName !== pokemonName) log(chalk.yellow.bgGreen(`INFO: Non "" default form: ${defaultForm}`));
+    if (DataLib.POKEMON_DATA[pokemonName].defaultForms!.length > 1) log(chalk.yellow(`WARN: Multiple default forms detected for ${pokemonName}.`));
 
     return DataLib.FORMS[fullName];
 }
@@ -133,11 +153,11 @@ export function getDefaultForm(pokemonName: string): FormData {
  * @param key key of object to get moves from. E.g. eggMoves
  */
 export function getFormMoves(formData: FormData, key: MoveKeys): string[] | LevelUpMoveData[] | undefined {
-    // console.log("Grabbing", key, "from", formData);
+    // debug("Grabbing", key, "from", formData);
     return formData.moves?.[key];
 }
 
-export function isSameEvoLine(fullName1: string, fullName2: string) {
+export function isSameEvoLineOld(fullName1: string, fullName2: string) {
     if (fullName1 === fullName2) return true;
 
     //* Build `line`s as preevos + current
@@ -148,33 +168,16 @@ export function isSameEvoLine(fullName1: string, fullName2: string) {
     return line1.some((stage) => line2.includes(stage));
 }
 
-// export function getParents(fullName: string, move: string, _methodsToInclude: MoveKeys[] = ["eggMoves", "levelUpMoves", "tutorMoves", "transferMoves"], deep = false): MoveParents {
-//     const parents: MoveParents = {};
-//     //* Get list of Pokemon that learn the move
-//     const listOfParents = Object.keys(DataLib.MOVES_SOURCES[move]);
-
-//     //* For each possible parent, store parent and its way of learning the move
-//     for (const parentName of listOfParents) {
-//         // Alias
-//         const storedLearnInfo = DataLib.MOVES_SOURCES[move][parentName];
-
-//         // Filter out methods not provided by method call
-//         const validMethods = storedLearnInfo.learnMethods.filter((method) => _methodsToInclude.includes(method));
-//         if (validMethods.length === 0) continue;
-
-//         // Filter out methods that can't be used to inherit move from parent
-//         const finalValidMethods = validMethods.filter((method) => parentIsValid(fullName, parentName, method));
-//         if (finalValidMethods.length === 0) continue;
-
-//         // Store a deep copy of the MOVE_SOURCES sub-object
-//         parents[parentName] = JSON.parse(JSON.stringify(DataLib.MOVES_SOURCES[move][parentName]));
-//     }
-//     // Return deepcopy of object, to get rid of references to MOVE_SOURCES, and avoid circular objects
-//     const deepCopy = JSON.parse(JSON.stringify(parents));
-//     return deepCopy;
-// }
+export function isSameEvoLine(fullName1: string, fullName2: string) {
+    return getBasic(fullName1) === getBasic(fullName2);
+}
 
 export function getSpeciesForm(fullName: string): [string, string] {
+    const uniqueCases = ["Ho-Oh", "Kommo-o", "Hakamo-o", "Jangmo-o", "Porygon-Z"];
+    if (uniqueCases.includes(fullName)) {
+        return [fullName, ""];
+    }
+
     const species_form = fullName.split("-");
     return [species_form[0], species_form[1] || ""];
 }
@@ -185,32 +188,58 @@ export function getFullName(species: string, form: string): string {
 
 export function getBasic(evoName: string): string {
     evoName = toPixelmonName(evoName);
+
     const [species, form] = getSpeciesForm(evoName);
 
-    const evoFormData = DataLib.FORMS[evoName];
-    if (!evoFormData) {
-        console.log(chalk.red("No form data found for", evoName));
-        return "";
-    }
-    const preEvolutions = DataLib.FORMS[evoName].preEvolutions || [];
-    const isBasic = preEvolutions?.length === 0;
-    const basicSpecies = isBasic ? species : _getBasicPreEvo(preEvolutions as string[]);
+    const evoFormData = DataLib.getForm(evoName);
 
-    if (hasForm(basicSpecies, form)) {
-        return form === "" ? basicSpecies : `${basicSpecies}-${form}`;
-    } else {
-        const basicSpeciesDefaultForm = getDefaultForm(basicSpecies).name;
-        return basicSpeciesDefaultForm === "" ? basicSpecies : `${basicSpecies}-${basicSpeciesDefaultForm}`;
+    const preEvolutions = evoFormData.preEvolutions || getDefaultForm(species).preEvolutions || [];
+    const isBasic = preEvolutions.length === 0;
+    const speciesBasicStage = isBasic ? species : findBasicPreevolution(preEvolutions);
+
+    // basic-form
+    if (form !== "" && hasForm(speciesBasicStage, form)) {
+        return getFullName(speciesBasicStage, form);
     }
+
+    // basic-tag
+    for (const tag of evoFormData.tags || []) {
+        const formWithTag = getFormWithTag(speciesBasicStage, tag);
+        if (formWithTag !== null) {
+            return getFullName(speciesBasicStage, formWithTag.name);
+        }
+    }
+
+    // basic-default || basic
+    const basicSpeciesDefaultForm = getDefaultForm(speciesBasicStage).name;
+    return getFullName(speciesBasicStage, basicSpeciesDefaultForm);
 }
 
-function _getBasicPreEvo(preEvolutions: string[]): string {
+export function isBasic(fullName: string): boolean {
+    const [species, form] = getSpeciesForm(fullName);
+    const formData = DataLib.getForm(fullName);
+    const preEvolutions = formData.preEvolutions || getDefaultForm(species).preEvolutions || [];
+    return preEvolutions.length === 0;
+}
+
+function findBasicPreevolution(preEvolutions: string[]): string {
     for (const pr of preEvolutions) {
-        if (DataLib.FORMS[pr].preEvolutions?.length === 0) return pr;
+        const prform = DataLib.getForm(pr);
+        if (is.undefined(prform.preEvolutions) || prform.preEvolutions.length === 0) return pr;
     }
-    console.log(chalk.red("Could not find a basic stage in"));
+    log(chalk.red("Could not find a basic stage in"));
     console.log(preEvolutions);
     return "";
+}
+
+export function getFormWithTag(speciesName: string, tag: string) {
+    const speciesData = DataLib.getPokemonData(speciesName);
+    for (const formData of speciesData.forms) {
+        if (!is.undefined(formData.tags) && formData.tags.includes(tag)) {
+            return formData;
+        }
+    }
+    return null;
 }
 
 export function hasForm(speciesName: string, formName: string): boolean {
@@ -262,3 +291,5 @@ export function getMoveLearnData(move: string | LevelUpMoveData, method: MoveKey
         return out;
     }
 }
+
+isSameEvoLine;

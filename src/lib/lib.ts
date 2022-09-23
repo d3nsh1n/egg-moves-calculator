@@ -43,7 +43,7 @@ export type ParentInfo = {
 
 export type BreedingPath = {
     length: number;
-    parents: string[];
+    parents: (string | string[])[];
     // parentInfo: {
     //     [parent: string]: ParentInfo;
     // };
@@ -66,4 +66,8 @@ export type Forms = {
 
 export type AllPokemonData = {
     [pokemon: string]: PokemonData;
+};
+
+export type EvoLines = {
+    [base: string]: string[];
 };

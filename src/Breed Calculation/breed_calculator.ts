@@ -1,12 +1,16 @@
 import { BreedingPath, MoveParents, ParentInfo, SuggestedMove } from "./lib/lib";
-import { MoveUsage, toPixelmonMove, toPixelmonName } from "./lib/smogonlib";
-import { getMoveUsage } from "./smogon_stats";
+import { MoveUsage, toPixelmonMove, toPixelmonName } from "./Smogon Data Collection/smogonlib";
+import { getMoveUsage } from "./Smogon Data Collection/smogon_stats";
 import { DataLib } from "./tools/dataLib";
 import { DataLoader } from "./tools/dataLoader";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
-import { arrayEquals, canInherit, deepCopy, getBasic, getFormMoves, getMoveParents } from "./lib/utils";
+import { arrayEquals, canInherit, deepCopy, getBasic, getFormMoves, getMoveParents, unboundLog } from "./lib/utils";
 import { performance } from "perf_hooks";
+
+const __CONTEXT__ = "";
+const LOG = false;
+const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#ffffff", ...data);
 
 export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
@@ -17,7 +21,7 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
 
     // Guard
     if (!DataLib.FORMS.hasOwnProperty(basicFormFullName)) {
-        console.log(chalk.bgRed(`[ERR!] No data found for ${basicFormFullName}.`));
+        log(chalk.bgRed(`[ERR!] No data found for ${basicFormFullName}.`));
         return [];
     }
     const form = DataLib.FORMS[basicFormFullName];
@@ -38,11 +42,11 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     for (const usedMove in moveUsage) {
         // Guard
         if (!DataLib.LEARNABLE_MOVES[basicFormFullName].hasOwnProperty(usedMove)) {
-            console.log(chalk.yellow(`Base form cannot learn: ${usedMove}`));
+            log(chalk.yellow(`Base form cannot learn: ${usedMove}`));
             if (DataLib.LEARNABLE_MOVES[fullName]?.[usedMove] !== undefined) {
-                console.log(DataLib.LEARNABLE_MOVES[fullName][usedMove].learnMethods);
+                log(DataLib.LEARNABLE_MOVES[fullName][usedMove].learnMethods);
             } else {
-                console.log(chalk.yellow(`Could not find acquisition data for move: ${usedMove}/${fullName}!`));
+                log(chalk.yellow(`Could not find acquisition data for move: ${usedMove}/${fullName}!`));
             }
             continue;
         }
@@ -59,7 +63,7 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
 
         // Egg Move Guard
         if (eggMoves?.includes(usedMove) && !parents) {
-            console.log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${basicFormFullName}`));
+            log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${basicFormFullName}`));
             continue;
         }
 
@@ -75,8 +79,8 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
         suggestedMoves.push(suggestedMove);
     }
 
-    console.log(chalk.bgGreen("[INFO] Egg Moves not included:"));
-    console.log(eggMoves);
+    log(chalk.bgGreen("[INFO] Egg Moves not included:"));
+    log(eggMoves);
     suggestedMoves.sort(_sortSuggested);
     const end = amount || suggestMoves.length;
     return suggestedMoves.slice(0, end);
@@ -170,30 +174,30 @@ export function getBreedingPaths(sortedParentsInfo: ParentInfo[], shortestPathsO
             final.push(path);
         }
 
-        if (path.length < breedingPaths[0].length) console.log("AHAHAHHAHAHKJASHDFLHDSFLKDSGLKDSFL");
+        if (path.length < breedingPaths[0].length) log("AHAHAHHAHAHKJASHDFLHDSFLKDSGLKDSFL");
     }
 
-    console.log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
+    log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
     final = [...new Set(final)];
     return final;
 }
 
 function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], currentPath?: BreedingPath): BreedingPath[] {
     //! Debug
-    // console.log(chalk.bgBlue("CALLED"));
-    // console.log(
+    // debug(chalk.bgBlue("CALLED"));
+    // debug(
     //     "sortedParents:",
     //     sortedParentsInfo.map((p) => p.parent)
     // );
 
-    // console.log("moves:", moves);
-    // console.log("currentPath:", currentPath);
+    // debug("moves:", moves);
+    // debug("currentPath:", currentPath);
     //!
 
     sortedParentsInfo = [...sortedParentsInfo];
     // Guard
     if (sortedParentsInfo.length === 0) {
-        // console.log(chalk.yellow("[WARN] Empty parentInfo array provided. Could not generate breeding paths."));
+        // debug(chalk.yellow("[WARN] Empty parentInfo array provided. Could not generate breeding paths."));
         return [];
     }
 
@@ -217,8 +221,8 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
 
         //? Dont return, so that you search all parents, in case there are multiple that complete the path in the same step
         if (remainingMoves.length === 0) {
-            // console.log(chalk.blue("we're here?", initialParent.parent));
-            // console.log(chalk.greenBright(mainParent.parent, "completes the path."));
+            // debug(chalk.blue("we're here?", initialParent.parent));
+            // debug(chalk.greenBright(mainParent.parent, "completes the path."));
 
             // Found (a) last parent
 
@@ -241,16 +245,16 @@ function _getParentPaths(sortedParentsInfo: ParentInfo[], moves?: string[], curr
     }
 
     //* No parent completed the path
-    // console.log(chalk.red("No parents completed the path."));
-    // console.log(chalk.blue("we're here"));
+    // debug(chalk.red("No parents completed the path."));
+    // debug(chalk.blue("we're here"));
 
     // See if any parents would make progress
     const parentsThatMakeProgress = __getNextForMove(sortedParentsInfo, moves);
-    // console.log(chalk.bgBlue("Parents that make progress:"));
-    // console.log(parentsThatMakeProgress);
+    // debug(chalk.bgBlue("Parents that make progress:"));
+    // debug(parentsThatMakeProgress);
     if (parentsThatMakeProgress.length === 0) {
-        console.log(chalk.yellow("[WARN] No parents found to make progress. Unobtainable egg move?"));
-        console.log(moves);
+        log(chalk.yellow("[WARN] No parents found to make progress. Unobtainable egg move?"));
+        log(moves);
         return [];
     }
 

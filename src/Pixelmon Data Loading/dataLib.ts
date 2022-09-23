@@ -1,11 +1,15 @@
 import chalk from "chalk";
 import { EggGroups, FormData, isPokemonData, LevelUpMoveData, MoveKeys, MovesData, PokemonData } from "../lib/pokemonlib";
-import { EggGroupsLib, LearnableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData, LearnMethodInfo, MoveParents, MoveLearnData } from "../lib/lib";
+import { EggGroupsLib, LearnableMoves, MOVE_KEYS, INHERITABLE_KEYS, Forms, AllPokemonData, LearnMethodInfo, MoveParents, MoveLearnData, EvoLines } from "../lib/lib";
 import { DataLoader } from "./dataLoader";
 import is from "@sindresorhus/is";
 import { performance } from "perf_hooks";
 import fs from "fs-extra";
-import { getFormMoves, getListOfParents, getMoveLearnData, parentIsValid } from "../lib/utils";
+import { error, getBasic, getDefaultForm, getFormMoves, getFullName, getListOfParents, getMoveLearnData, isBasic, parentIsValid, unboundLog } from "../lib/utils";
+
+const __CONTEXT__ = "DataLib";
+const LOG = true;
+const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#c23c34", ...data);
 
 export class DataLib {
     /** Pokemon: Move: LearnMethodInfo
@@ -28,16 +32,23 @@ export class DataLib {
      */
     public static POKEMON_DATA: AllPokemonData = {};
 
+    public static EVO_LINES: EvoLines = {};
+
     //! # === CONTRUCTOR === #
     public static init(forceLoad = false) {
         let startTime = performance.now();
+
+        //! Evo Lines
+        if (is.emptyObject(this.EVO_LINES) || forceLoad) {
+            this._generateEvolLines();
+        }
 
         //! Learnable moves
         if (is.emptyObject(this.LEARNABLE_MOVES) || forceLoad) {
             this._generateLearnableMoves();
         }
 
-        console.log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
+        // log(chalk.bgGreen(`DataLib took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
 
     private static _generateLearnableMoves() {
@@ -75,6 +86,30 @@ export class DataLib {
         }
     }
 
+    //! EVO_LINES
+    private static _generateEvolLines() {
+        // return;
+        // Establish evo lines
+        for (const form in this.FORMS) {
+            if (isBasic(form)) {
+                // log(chalk.green("New evo line:", form));
+                this.EVO_LINES[form] = [];
+            }
+        }
+
+        // Populate evo lines
+        for (const form in this.FORMS) {
+            const basic = getBasic(form);
+            // log(chalk.blue(`Adding ${form} to ${basic}`));
+            if (is.undefined(this.EVO_LINES[basic])) {
+                log(error(`No evo line ${basic} exists for ${form}.`));
+                continue;
+            }
+
+            this.EVO_LINES[basic].push(form);
+        }
+    }
+
     //! EGG_GROUPS
     public static addEggGroupsToLib(fullName: string, form: FormData) {
         //* Forms don't have different egg groups, but we need to store them for each form
@@ -106,8 +141,8 @@ export class DataLib {
 
     public static getPokemonData(species: string): PokemonData {
         //todo read from file?
-        if (DataLib.POKEMON_DATA.hasOwnProperty(species)) {
-            console.error(chalk.red(`Could not read POKEMON_DATA for ${species}.`));
+        if (is.undefined(DataLib.POKEMON_DATA[species])) {
+            console.error(chalk.red(`Could not read POKEMON_DATA for ${species}`));
         }
         return this.POKEMON_DATA[species];
     }
@@ -119,12 +154,17 @@ export class DataLib {
 
     public static getForm(fullName: string): FormData {
         if (!DataLib.FORMS.hasOwnProperty(fullName)) {
-            console.error(chalk.red(`Could not read FORM for ${fullName}`));
+            const def = getFullName(fullName, getDefaultForm(fullName).name);
+            if (is.undefined(DataLib.FORMS[def])) {
+                console.error(chalk.red(`Could not read FORM for ${fullName}`));
+            } else {
+                return DataLib.FORMS[def];
+            }
         }
         return this.FORMS[fullName];
     }
 
     public static formExists(fullName: string): boolean {
-        return DataLib.FORMS.hasOwnProperty(fullName);
+        return !is.undefined(DataLib.FORMS[fullName]);
     }
 }

@@ -28,7 +28,7 @@ export type FormData = {
     movement: IrrelevantData;
     aggression: IrrelevantData;
     battleStats: IrrelevantData;
-    tags: IrrelevantData;
+    tags: string[];
     spawn: IrrelevantData;
     possibleGenders: ("MALE" | "FEMALE")[];
     genderProperties: IrrelevantData;
@@ -50,7 +50,6 @@ export function isFormData(value: any): value is FormData {
     if (is.undefined(value)) return false;
     if (!is.string(value.name)) return false;
     if (!is.undefined(value.experienceGroup) && !is.string(value.experienceGroup)) return false;
-    console.log(chalk.blue("good"));
     if (!isMovesData(value.moves)) return false;
     if (!isAbilitiesData(value.abilities)) return false;
     if (!isPossibleGenders(value.possibleGenders)) return false;

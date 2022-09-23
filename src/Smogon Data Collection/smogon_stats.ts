@@ -1,12 +1,17 @@
 import ky from "ky-universal";
 import chalk from "chalk";
-import { MoveUsage, toSmogonName, UsageMoves, UsageStats } from "./lib/smogonlib";
-import { writeToTest } from "./main";
+import { MoveUsage, toSmogonName, UsageMoves, UsageStats } from "./smogonlib";
+import { writeToTest } from "../main";
 import fs from "fs-extra";
+import { unboundLog } from "../lib/utils";
+
+const __CONTEXT__ = "SmogonStats";
+const DEBUG = false;
+const debug = (data: any) => unboundLog(DEBUG, __CONTEXT__, data);
 
 export async function getPokemonUsage(fullName: string) {
     const usageStats = await ky.get(`https://smogon-usage-stats.herokuapp.com/2022/07/gen8nationaldex/0/${fullName}`).json();
-    console.log(usageStats);
+    debug(usageStats);
     writeToTest(usageStats);
     return usageStats;
 }
@@ -21,8 +26,8 @@ export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
         }
         return final;
     } catch (err: any) {
-        console.log(chalk.bgYellow("Could not fetch data for", fullName));
-        console.log(chalk.yellow(err));
+        debug(chalk.bgYellow("Could not fetch data for", fullName));
+        debug(chalk.yellow(err));
         return {};
     }
 }
@@ -40,8 +45,8 @@ export async function getMoveUsage2(fullName: string): Promise<MoveUsage> {
         }
         return final;
     } catch (err: any) {
-        console.log(chalk.bgYellow("Could not fetch data for", fullName));
-        console.log(chalk.yellow(err));
+        debug(chalk.bgYellow("Could not fetch data for", fullName));
+        debug(chalk.yellow(err));
         return {};
     }
 }
