@@ -1,7 +1,9 @@
 import { performance } from "perf_hooks";
-import { BreedingPath, ParentInfo } from "./lib/lib";
+import { BreedingPath, ParentInfo } from "../lib";
 import chalk from "chalk";
-import { arrayEquals, deepCopy, isSameEvoLine, unboundLog } from "./lib/utils";
+import { arrayEquals, deepCopy } from "../utils";
+import { unboundLog } from "../logger";
+import { isSameEvoLine } from "../Pixelmon Data Manager/pixelmonutils";
 
 const __CONTEXT__ = "Path Generator";
 const DEBUG = false;

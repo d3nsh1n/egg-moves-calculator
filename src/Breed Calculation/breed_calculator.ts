@@ -1,12 +1,12 @@
-import { BreedingPath, MoveParents, ParentInfo, SuggestedMove } from "./lib/lib";
-import { MoveUsage, toPixelmonMove, toPixelmonName } from "./Smogon Data Collection/smogonlib";
-import { getMoveUsage } from "./Smogon Data Collection/smogon_stats";
-import { DataLib } from "./tools/dataLib";
-import { DataLoader } from "./tools/dataLoader";
+import { BreedingPath, MoveParents, ParentInfo, SuggestedMove } from "../lib";
+import { MoveUsage } from "../Smogon Data Collection/smogonlib";
+import { getMoveUsage } from "../Smogon Data Collection/smogon_stats";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
-import { arrayEquals, canInherit, deepCopy, getBasic, getFormMoves, getMoveParents, unboundLog } from "./lib/utils";
 import { performance } from "perf_hooks";
+import { unboundLog } from "../logger";
+import { toPixelmonMove, toPixelmonName } from "../Smogon Data Collection/smogonutils";
+import { getMoveParents } from "../Pixelmon Data Manager/pixelmonutils";
 
 const __CONTEXT__ = "";
 const LOG = false;

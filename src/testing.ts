@@ -1,5 +1,5 @@
-import { getBreedingPaths } from "./breed_calculator";
-import { ParentInfo } from "./lib/lib";
+import { getBreedingPaths } from "./Breed Calculation/breed_calculator";
+import { ParentInfo } from "./lib";
 import chalk from "chalk";
 
 const m = ["A", "B", "C", "D"];

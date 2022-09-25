@@ -2,13 +2,13 @@ import is from "@sindresorhus/is";
 import chalk from "chalk";
 import { StringKeyOf } from "type-fest";
 
-export type PokemonData = {
+export interface PokemonData {
     name: string;
     dex: number;
     defaultForms: string[];
     forms: FormData[];
     generation: number;
-};
+}
 export function isPokemonData(value: any): value is PokemonData {
     if (is.undefined(value)) return false;
     if (!is.string(value.name)) return false;

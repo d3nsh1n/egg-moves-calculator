@@ -1,4 +1,5 @@
-import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pokemonlib";
+import { Pokemon } from "src/pokemon";
+import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./Pixelmon Data Manager/pixelmonlib";
 
 export const MOVE_KEYS: MoveKeys[] = ["levelUpMoves", "tutorMoves", "eggMoves", "tmMoves8", "trMoves", "hmMoves", "transferMoves"]; //, "tmMoves7", "tmMoves6", "tmMoves5", "tmMoves4", "tmMoves3", "tmMoves2", "tmMoves1", "tmMoves"];
 export const INHERITABLE_KEYS: MoveKeys[] = ["tutorMoves", "eggMoves", "transferMoves", "levelUpMoves"];
@@ -50,7 +51,7 @@ export type BreedingPath = {
 };
 
 //! # === LIBRARIES === #
-export type LearnableMoves = {
+export type LearnableMovesLib = {
     [pokemon: string]: {
         [move: string]: LearnMethodInfo;
     };
@@ -60,14 +61,14 @@ export type EggGroupsLib = {
     [group in EggGroups]?: string[];
 };
 
-export type Forms = {
-    [pokemon: string]: FormData;
+export type PokemonLib = {
+    [pokemon: string]: Pokemon;
 };
 
-export type AllPokemonData = {
-    [pokemon: string]: PokemonData;
-};
-
-export type EvoLines = {
+export type EvoLinesLib = {
     [base: string]: string[];
+};
+
+export type FormIndexLib = {
+    [species: string]: string[];
 };

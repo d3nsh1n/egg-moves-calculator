@@ -1,14 +1,13 @@
 import fs from "fs-extra";
-import { DataLib } from "./tools/dataLib";
-import "./tools/dataLoader";
-import { DataLoader } from "./tools/dataLoader";
+import "./Pixelmon Data Manager/data_manager";
+import { DataManager } from "./Pixelmon Data Manager/data_manager";
 import chalk from "chalk";
-import { getMoveUsage, getPokemonUsage } from "./Smogon Data Collection/smogon_stats";
-import { getMinimumParents, getParentsInfo, suggestMoves } from "./breed_calculator";
-import { ParentInfo } from "./lib/lib";
-import { getBasic, getSpeciesForm, isSameEvoLine, unboundLog, warn } from "./lib/utils";
-import { compressPaths, getBreedingPaths } from "./path_generator";
+import { getMoveUsage, getUsageStats } from "./Smogon Data Collection/smogon_stats";
+import { getMinimumParents, getParentsInfo, suggestMoves } from "./Breed Calculation/breed_calculator";
+import { ParentInfo } from "./lib";
+import { compressPaths, getBreedingPaths } from "./Breed Calculation/path_generator";
 import { sortedParentsInfo2 } from "./testing";
+import { unboundLog } from "./logger";
 
 const __CONTEXT__ = "Main";
 const LOG = true;
@@ -18,7 +17,9 @@ const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#1234FF", ...data);
 const filePath = "data/species/092_gastly.json";
 
 export async function main() {
-    new DataLoader(true);
+    log("Running new version.");
+    new DataManager(true);
+    return;
 
     const moves = await suggestMoves("Rillaboom", 4, ["Hammer Arm", "Growth", "Leech Seed"]);
     const info = getParentsInfo(moves);

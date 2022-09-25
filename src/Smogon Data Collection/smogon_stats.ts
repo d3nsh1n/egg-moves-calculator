@@ -1,16 +1,17 @@
 import ky from "ky-universal";
 import chalk from "chalk";
-import { MoveUsage, toSmogonName, UsageMoves, UsageStats } from "./smogonlib";
-import { writeToTest } from "../main";
+import { MoveUsage, UsageMoves, UsageStats } from "./smogonlib";
+import { writeToTest } from "../main"; //
 import fs from "fs-extra";
-import { unboundLog } from "../lib/utils";
+import { unboundLog } from "../logger";
+import { toSmogonName } from "./smogonutils";
 
 const __CONTEXT__ = "SmogonStats";
 const DEBUG = false;
 const debug = (data: any) => unboundLog(DEBUG, __CONTEXT__, data);
 
-export async function getPokemonUsage(fullName: string) {
-    const usageStats = await ky.get(`https://smogon-usage-stats.herokuapp.com/2022/07/gen8nationaldex/0/${fullName}`).json();
+export async function getUsageStats(fullName: string): Promise<UsageStats> {
+    const usageStats: UsageStats = await ky.get(`https://smogon-usage-stats.herokuapp.com/2022/07/gen8nationaldex/0/${fullName}`).json();
     debug(usageStats);
     writeToTest(usageStats);
     return usageStats;
@@ -19,7 +20,7 @@ export async function getPokemonUsage(fullName: string) {
 export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
     const smogonName = toSmogonName(fullName);
     try {
-        const usageStats: UsageStats = (await getPokemonUsage(smogonName)) as UsageStats;
+        const usageStats: UsageStats = (await getUsageStats(smogonName)) as UsageStats;
         const final: MoveUsage = {};
         for (const move in usageStats.moves) {
             final[move] = parseFloat(usageStats.moves[move].replace("%", ""));
@@ -33,7 +34,7 @@ export async function getMoveUsage(fullName: string): Promise<MoveUsage> {
 }
 
 //! LOCAL OFFLINE
-export async function getMoveUsage2(fullName: string): Promise<MoveUsage> {
+export async function getMoveUsageOffline(fullName: string): Promise<MoveUsage> {
     const usage = JSON.parse(fs.readFileSync(`data/usage_stats/${fullName.toLowerCase()}.json`).toString());
     //!
     const smogonName = toSmogonName(fullName);
