@@ -1,8 +1,8 @@
 import is from "@sindresorhus/is";
-import { INHERITABLE_KEYS } from "./lib";
+import { INHERITABLE_KEYS, MoveLearnData } from "./lib";
 import { DataManager } from "./Pixelmon Data Manager/data_manager";
-import { AbilitiesData, EggGroups, EvolutionData, FormData, MovesData, PokemonData, TypesData } from "./Pixelmon Data Manager/pixelmonlib";
-import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, getMoveLearnData, hasForm, toPokemonName } from "./Pixelmon Data Manager/pixelmonutils";
+import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "./Pixelmon Data Manager/pixelmonlib";
+import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, toMoveLearnData, hasForm, toPokemonName } from "./Pixelmon Data Manager/pixelmonutils";
 
 export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     name: string;
@@ -52,12 +52,9 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
                 continue;
             }
 
-            for (const m of this.moves[key]) {
-                const moves = getMoveLearnData(m, key);
-                for (const moveOfForm of moves) {
-                    if (moveOfForm.name === move) {
-                        return true;
-                    }
+            for (const moveOfForm of this.getMoves(key)) {
+                if (moveOfForm.name === move) {
+                    return true;
                 }
             }
         }
@@ -97,6 +94,17 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
 
     public getPreEvolutions(): string[] {
         return this.preEvolutions || this.getDefaultForm().preEvolutions || [];
+    }
+
+    public getMoves(key: MoveKeys): MoveLearnData[] {
+        const out = [];
+        if (is.undefined(this.moves) || is.undefined(this.moves[key])) {
+            return [];
+        }
+        for (const move of this.moves[key]) {
+            out.push(...toMoveLearnData(move, key));
+        }
+        return out;
     }
 
     public isBasic(): boolean {

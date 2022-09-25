@@ -112,7 +112,7 @@ export function forEachPokemon(callback: (pokemon: Pokemon) => void) {
 }
 
 /** Extract Move Learn Data - Uses a unified format for moves, and returns array in case of multiple moves from the same level in LevelUpMoveData */
-export function getMoveLearnData(move: string | LevelUpMoveData, method: MoveKeys): MoveLearnData[] {
+export function toMoveLearnData(move: string | LevelUpMoveData, method: MoveKeys): MoveLearnData[] {
     if (is.string(move)) {
         return [
             {

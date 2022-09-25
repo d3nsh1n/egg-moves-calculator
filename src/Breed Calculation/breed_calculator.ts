@@ -7,25 +7,25 @@ import { performance } from "perf_hooks";
 import { unboundLog } from "../logger";
 import { toPixelmonMove, toPixelmonName } from "../Smogon Data Collection/smogonutils";
 import { getMoveParents } from "../Pixelmon Data Manager/pixelmonutils";
+import { DataManager } from "../Pixelmon Data Manager/data_manager";
 
-const __CONTEXT__ = "";
+const __CONTEXT__ = "BreedCalc";
 const LOG = false;
-const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#ffffff", ...data);
+const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#99aa22", ...data);
 
 export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
-    const finalEvoFormData = DataLib.getForm(finalEvoFullName);
-    const basicFormFullName = getBasic(finalEvoFullName);
+    const finalEvo = DataManager.POKEMON[finalEvoFullName];
+    const basicForm = finalEvo.getBasic();
 
     // Guard
-    if (!DataLib.FORMS.hasOwnProperty(basicFormFullName)) {
-        log(chalk.bgRed(`[ERR!] No data found for ${basicFormFullName}.`));
+    if (is.undefined(DataManager.POKEMON[basicForm.toString()])) {
+        log(chalk.bgRed(`[ERR!] No data found for ${basicForm.toString()}.`));
         return [];
     }
-    const form = DataLib.FORMS[basicFormFullName];
-    const eggMoves = getFormMoves(form, "eggMoves") as string[];
+    const eggMoves = getFormMoves(basicForm, "eggMoves") as string[];
 
     //? Grab info for all moves, sort/filter (to 4 or more) before returning
     const suggestedMoves: SuggestedMove[] = [];

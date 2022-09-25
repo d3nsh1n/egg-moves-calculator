@@ -8,7 +8,7 @@ import ky from "ky-universal";
 import { error, unboundLog } from "../logger";
 import is from "@sindresorhus/is";
 import { Pokemon } from "../pokemon";
-import { getMoveLearnData, getParentsForMove } from "./pixelmonutils";
+import { toMoveLearnData, getParentsForMove } from "./pixelmonutils";
 
 const __CONTEXT__ = "DataManager";
 const LOG = true;
@@ -151,17 +151,11 @@ export class DataManager {
             learnableMoves[pokemonName] ||= {};
 
             for (const learnMethod in pokemon.moves) {
-                for (const m of pokemon.moves[learnMethod as MoveKeys]) {
-                    // Extract Move Learn Data - Uses a unified format for moves, and returns array in case of multiple moves from the same level in LevelUpMoveData
-                    const moveLearnData: MoveLearnData[] = getMoveLearnData(m, learnMethod as MoveKeys);
-                    for (const move of moveLearnData) {
-                        // Alias and init
-                        // let moveLearnInfo = result[form][move.name];
-                        learnableMoves[pokemonName][move.name] ||= { learnMethods: [] };
+                for (const move of pokemon.getMoves(learnMethod as MoveKeys)) {
+                    learnableMoves[pokemonName][move.name] ||= { learnMethods: [] };
 
-                        learnableMoves[pokemonName][move.name].learnMethods.push(move.method);
-                        if (move.level !== undefined) learnableMoves[pokemonName][move.name].level = move.level;
-                    }
+                    learnableMoves[pokemonName][move.name].learnMethods.push(move.method);
+                    if (move.level !== undefined) learnableMoves[pokemonName][move.name].level = move.level;
                 }
             }
         }
