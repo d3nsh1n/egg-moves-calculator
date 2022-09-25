@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { arrayEquals, deepCopy } from "../utils";
 import { unboundLog } from "../logger";
 import { isSameEvoLine } from "../Pixelmon Data Manager/pixelmonutils";
+import { DataManager } from "../Pixelmon Data Manager/data_manager";
 
 const __CONTEXT__ = "Path Generator";
 const DEBUG = false;
@@ -90,14 +91,17 @@ function addParentToPath(path: BreedingPath, parent: ParentInfo) {
 
 export function compressPaths(paths: BreedingPath[]) {
     for (const path of paths) {
-        for (const parent of path.parents) {
-            if (typeof parent !== "string") continue;
+        for (const parentName of path.parents) {
+            if (typeof parentName !== "string") continue;
+            const parent = DataManager.POKEMON[parentName];
             for (const otherPath of [...paths.slice(paths.indexOf(path) + 1)]) {
                 // if (arrayEquals(path.parents.slice(path.parents.indexOf(parent), 1), otherPath.parents.slice(path.parents.indexOf(parent), 1)))
-                for (const otherParent of otherPath.parents) {
-                    if (typeof otherParent !== "string" || otherParent === parent) continue;
-                    if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parent, 1)), otherPath.parents.slice(otherPath.parents.indexOf(otherParent, 1)))) {
-                        console.log([[parent, otherParent], ...path.parents.slice(path.parents.indexOf(parent, 1))]);
+                for (const otherParentName of otherPath.parents) {
+                    if (typeof otherParentName !== "string" || otherParentName === parentName) continue;
+                    const otherParent = DataManager.POKEMON[otherParentName];
+
+                    if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parentName, 1)), otherPath.parents.slice(otherPath.parents.indexOf(otherParentName, 1)))) {
+                        console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName, 1))]);
                     }
                 }
             }

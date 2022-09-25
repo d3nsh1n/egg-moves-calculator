@@ -3,7 +3,7 @@ import "./Pixelmon Data Manager/data_manager";
 import { DataManager } from "./Pixelmon Data Manager/data_manager";
 import chalk from "chalk";
 import { getMoveUsage, getUsageStats } from "./Smogon Data Collection/smogon_stats";
-import { getMinimumParents, getParentsInfo, suggestMoves } from "./Breed Calculation/breed_calculator";
+import { getParentsInfo, suggestMoves } from "./Breed Calculation/breed_calculator";
 import { ParentInfo } from "./lib";
 import { compressPaths, getBreedingPaths } from "./Breed Calculation/path_generator";
 import { sortedParentsInfo2 } from "./testing";
@@ -19,7 +19,6 @@ const filePath = "data/species/092_gastly.json";
 export async function main() {
     log("Running new version.");
     new DataManager(true);
-    return;
 
     const moves = await suggestMoves("Rillaboom", 4, ["Hammer Arm", "Growth", "Leech Seed"]);
     const info = getParentsInfo(moves);

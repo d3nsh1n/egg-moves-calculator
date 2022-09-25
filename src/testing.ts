@@ -1,4 +1,3 @@
-import { getBreedingPaths } from "./Breed Calculation/breed_calculator";
 import { ParentInfo } from "./lib";
 import chalk from "chalk";
 
