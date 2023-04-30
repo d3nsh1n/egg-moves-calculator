@@ -132,3 +132,7 @@ export function toMoveLearnData(move: string | LevelUpMoveData, method: MoveKeys
         return out;
     }
 }
+
+export function parentsThatLearnFromMethod(pokemonName: string, move: string, method: MoveKeys = "levelUpMoves") {
+    return DataManager.LEARNABLE_MOVES[pokemonName][move].parents?.filter((p) => DataManager.LEARNABLE_MOVES[p][move].learnMethods.includes(method));
+}

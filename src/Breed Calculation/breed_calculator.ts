@@ -10,7 +10,7 @@ import { getMoveParents } from "../Pixelmon Data Manager/pixelmonutils";
 import { DataManager } from "../Pixelmon Data Manager/data_manager";
 
 const __CONTEXT__ = "BreedCalc";
-const LOG = false;
+const LOG = true;
 const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#99aa22", ...data);
 
 export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
@@ -83,6 +83,12 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     log(eggMoves);
     suggestedMoves.sort(_sortSuggested);
     const end = amount || suggestMoves.length;
+    log(
+        "Final:",
+        suggestedMoves.slice(0, end).map((m) => {
+            return { [m.move]: m.learnMethods };
+        })
+    );
     return suggestedMoves.slice(0, end);
 }
 
@@ -105,48 +111,5 @@ function _sortSuggested(a: SuggestedMove, b: SuggestedMove): number {
     } else if (bIsEgg) {
         return 1;
     }
-    return 0;
-}
-
-export function getParentsInfo(suggestedMoves: SuggestedMove[]): ParentInfo[] {
-    const parentsInfo: ParentInfo[] = [];
-    const parentsChecked: string[] = [];
-
-    //* For each suggested move
-    for (const suggestedMove of suggestedMoves) {
-        // Parents wont exist for (self) tutor moves
-        if (!suggestedMove.parents) continue;
-
-        //* Iterate not already checked parents
-        for (const parent in suggestedMove.parents) {
-            if (parentsChecked.includes(parent)) continue;
-
-            const inMoves: string[] = [];
-            const notInMoves: string[] = [];
-            //* Iterate through each move, and count how many of them include the parent as a source
-            for (const move of suggestedMoves) {
-                // Parents wont exist for (self) tutor moves
-                if (!move.parents) continue;
-
-                if (Object.keys(move.parents).includes(parent)) {
-                    inMoves.push(move.move);
-                } else {
-                    notInMoves.push(move.move);
-                }
-            }
-            //* Mark as checked
-            parentsChecked.push(parent);
-
-            //* Store info
-            parentsInfo.push({ parent, amount: inMoves.length, inMoves, notInMoves });
-        }
-    }
-    parentsInfo.sort(_sortParentsInfo);
-    return parentsInfo;
-}
-
-function _sortParentsInfo(a: ParentInfo, b: ParentInfo) {
-    if (a.amount < b.amount) return 1;
-    if (a.amount > b.amount) return -1;
     return 0;
 }

@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "tw",
+            "problemMatcher": [],
+            "label": "npm: tw",
+            "detail": "npx tsc -w"
+        },
+        {
+            "type": "npm",
+            "script": "bw",
+            "problemMatcher": [],
+            "label": "npm: bw",
+            "detail": "npx babel -w toolchain-cache/ts-output --out-dir kernel/js --copy-files"
+        },
+        {
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": [],
+            "label": "npm: dev",
+            "detail": "npx nodemon ."
+        },
+        {
+            "label": "Node Dev",
+            "dependsOn": ["npm: bw", "npm: tw", "npm: dev"],
+            "problemMatcher": []
+        }
+    ]
+}

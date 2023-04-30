@@ -1,5 +1,5 @@
 import { performance } from "perf_hooks";
-import { BreedingPath, ParentInfo } from "../lib";
+import { BreedingPath, ParentInfo, SuggestedMove } from "../lib";
 import chalk from "chalk";
 import { arrayEquals, deepCopy } from "../utils";
 import { unboundLog } from "../logger";
@@ -7,43 +7,58 @@ import { isSameEvoLine } from "../Pixelmon Data Manager/pixelmonutils";
 import { DataManager } from "../Pixelmon Data Manager/data_manager";
 
 const __CONTEXT__ = "Path Generator";
-const DEBUG = false;
-const debug = (data: any) => unboundLog(DEBUG, __CONTEXT__, data);
+const LOG = true;
+const log = (data: any) => unboundLog(LOG, __CONTEXT__, "#234807", data);
 
-function getCombinations(array: string[], minLength: number = 1, maxLength: number = 4) {
-    const subsets: string[][] = [[]];
-    for (const el of array) {
-        const last = subsets.length - 1;
-        for (let i = 0; i <= last; i++) {
-            subsets.push([...subsets[i], el]);
+export function toParentInfo(suggestedMoves: SuggestedMove[]): ParentInfo[] {
+    const parentsInfo: ParentInfo[] = [];
+    const parentsChecked: string[] = [];
+
+    //* For each suggested move
+    for (const suggestedMove of suggestedMoves) {
+        // Parents wont exist for (self) tutor moves
+        if (!suggestedMove.parents) continue;
+
+        //* Iterate not already checked parents
+        for (const parent in suggestedMove.parents) {
+            if (parentsChecked.includes(parent)) continue;
+
+            const inMoves: string[] = [];
+            const notInMoves: string[] = [];
+            //* Iterate through each move, and count how many of them include the parent as a source
+            for (const move of suggestedMoves) {
+                // Parents wont exist for (self) tutor moves
+                if (!move.parents) continue;
+
+                if (Object.keys(move.parents).includes(parent)) {
+                    inMoves.push(move.move);
+                } else {
+                    notInMoves.push(move.move);
+                }
+            }
+            //* Mark as checked
+            parentsChecked.push(parent);
+
+            //* Store info
+            parentsInfo.push({ parent, amount: inMoves.length, inMoves, notInMoves });
         }
     }
-    return subsets.filter((subset) => subset.length >= minLength && subset.length <= maxLength);
+    parentsInfo.sort(_sortParentInfo);
+    return parentsInfo;
 }
-
-function* subsets(array: string[], offset = 0): any {
-    while (offset < array.length) {
-        let first = array[offset++];
-        for (let subset of subsets(array, offset)) {
-            subset.push(first);
-            yield subset;
-        }
-    }
-    yield [];
+function _sortParentInfo(a: ParentInfo, b: ParentInfo) {
+    if (a.amount < b.amount) return 1;
+    if (a.amount > b.amount) return -1;
+    return 0;
 }
 
 export function getBreedingPaths(sortedParentsInfo: ParentInfo[]): BreedingPath[] {
     const startTime = performance.now();
 
-    let index = 0;
-    // for (const parent in sortedParentsInfo) {
-    //     //resolve parent's paths
-    //     somefunc(sortedParentsInfo.slice(index++));
-    // }
     const final = [...getParentPaths(sortedParentsInfo)];
     const minLength = Math.min(...final.map((e) => e.length));
 
-    debug(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
+    log(chalk.bgMagenta(`getBreedingPaths took ${(performance.now() - startTime).toFixed(0)} ms.`));
     return final.filter((e) => e.length === minLength);
 }
 
@@ -86,10 +101,10 @@ function getParentPaths(parentsToCheck: ParentInfo[], moves?: string[], currentP
 function addParentToPath(path: BreedingPath, parent: ParentInfo) {
     path.length++;
     path.parents.push(parent.parent);
-    // path.parentInfo[parent.parent] = parent;
 }
 
 export function compressPaths(paths: BreedingPath[]) {
+    log("Compressing - WIP");
     for (const path of paths) {
         for (const parentName of path.parents) {
             if (typeof parentName !== "string") continue;
@@ -100,8 +115,8 @@ export function compressPaths(paths: BreedingPath[]) {
                     if (typeof otherParentName !== "string" || otherParentName === parentName) continue;
                     const otherParent = DataManager.POKEMON[otherParentName];
 
-                    if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parentName, 1)), otherPath.parents.slice(otherPath.parents.indexOf(otherParentName, 1)))) {
-                        console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName, 1))]);
+                    if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parentName), 1), otherPath.parents.slice(otherPath.parents.indexOf(otherParentName), 1))) {
+                        console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName), 1)]);
                     }
                 }
             }

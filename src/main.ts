@@ -3,9 +3,9 @@ import "./Pixelmon Data Manager/data_manager";
 import { DataManager } from "./Pixelmon Data Manager/data_manager";
 import chalk from "chalk";
 import { getMoveUsage, getUsageStats } from "./Smogon Data Collection/smogon_stats";
-import { getParentsInfo, suggestMoves } from "./Breed Calculation/breed_calculator";
+import { suggestMoves } from "./Breed Calculation/breed_calculator";
 import { ParentInfo } from "./lib";
-import { compressPaths, getBreedingPaths } from "./Breed Calculation/path_generator";
+import { compressPaths, getBreedingPaths, toParentInfo } from "./Breed Calculation/path_generator";
 import { sortedParentsInfo2 } from "./testing";
 import { unboundLog } from "./logger";
 
@@ -16,13 +16,18 @@ const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#1234FF", ...data);
 // const filePath = "data/species/092_gastly.json";
 const filePath = "data/species/092_gastly.json";
 
+console.log("a", "a", "asfldhf", "dsflkjhs");
+
 export async function main() {
     log("Running new version.");
     new DataManager(true);
 
-    const moves = await suggestMoves("Rillaboom", 4, ["Hammer Arm", "Growth", "Leech Seed"]);
-    const info = getParentsInfo(moves);
+    const moves = await suggestMoves("Gastly", 4, ["Disable", "Clear Smog", "Grudge"]);
+    console.log({ moves });
+    const info = toParentInfo(moves);
+    console.log({ info });
     const x = getBreedingPaths(info);
+    console.log({ x });
     compressPaths(x);
     // debug(x);
     writeToTest(x);
