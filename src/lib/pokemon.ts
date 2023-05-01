@@ -1,8 +1,8 @@
 import is from "@sindresorhus/is";
 import { INHERITABLE_KEYS, MoveLearnData } from "./lib";
-import { DataManager } from "./Pixelmon Data Manager/data_manager";
-import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "./Pixelmon Data Manager/pixelmonlib";
-import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, toMoveLearnData, hasForm, toPokemonName } from "./Pixelmon Data Manager/pixelmonutils";
+import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "../pixelmon-data-manager/pixelmonlib";
+import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, toMoveLearnData, hasForm, toPokemonName } from "../pixelmon-data-manager/pixelmonutils";
 
 export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     name: string;

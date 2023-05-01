@@ -1,5 +1,5 @@
 import { EggGroupsLib, INHERITABLE_KEYS, MoveLearnData, MoveParents } from "./lib";
-import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./Pixelmon Data Manager/pixelmonlib";
+import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../pixelmon-data-manager/pixelmonlib";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { SetRequired } from "type-fest";

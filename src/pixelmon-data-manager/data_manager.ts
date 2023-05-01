@@ -1,13 +1,13 @@
 import { performance } from "perf_hooks";
-import { PokemonLib, EggGroupsLib, LearnableMovesLib, MOVE_KEYS, EvoLinesLib, MoveLearnData, LearnMethodInfo, FormIndexLib } from "../lib";
+import { PokemonLib, EggGroupsLib, LearnableMovesLib, MOVE_KEYS, EvoLinesLib, MoveLearnData, LearnMethodInfo, FormIndexLib } from "../lib/lib";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pixelmonlib";
-import { getMoveUsage } from "../Smogon Data Collection/smogon_stats";
+import { getMoveUsage } from "../smogon-data-collection/smogon_stats";
 import ky from "ky-universal";
-import { error, unboundLog } from "../logger";
+import { error, unboundLog } from "../lib/logger";
 import is from "@sindresorhus/is";
-import { Pokemon } from "../pokemon";
+import { Pokemon } from "../lib/pokemon";
 import { toMoveLearnData, getParentsForMove } from "./pixelmonutils";
 
 const __CONTEXT__ = "DataManager";

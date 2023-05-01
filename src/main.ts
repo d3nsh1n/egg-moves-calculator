@@ -1,13 +1,13 @@
 import fs from "fs-extra";
-import "./Pixelmon Data Manager/data_manager";
-import { DataManager } from "./Pixelmon Data Manager/data_manager";
+import "./pixelmon-data-manager/data_manager";
+import { DataManager } from "./pixelmon-data-manager/data_manager";
 import chalk from "chalk";
-import { getMoveUsage, getUsageStats } from "./Smogon Data Collection/smogon_stats";
-import { suggestMoves } from "./Breed Calculation/breed_calculator";
-import { ParentInfo } from "./lib";
-import { compressPaths, getBreedingPaths, toParentInfo } from "./Breed Calculation/path_generator";
-import { sortedParentsInfo2 } from "./testing";
-import { unboundLog } from "./logger";
+import { getMoveUsage, getUsageStats } from "./smogon-data-collection/smogon_stats";
+import { suggestMoves } from "./breed-calculation/breed_calculator";
+import { ParentInfo } from "./lib/lib";
+import { compressPaths, getBreedingPaths, toParentInfo } from "./breed-calculation/path_generator";
+import { sortedParentsInfo2 } from "./lib/testing";
+import { unboundLog } from "./lib/logger";
 
 const __CONTEXT__ = "Main";
 const LOG = true;
@@ -15,8 +15,6 @@ const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#1234FF", ...data);
 
 // const filePath = "data/species/092_gastly.json";
 const filePath = "data/species/092_gastly.json";
-
-console.log("a", "a", "asfldhf", "dsflkjhs");
 
 export async function main() {
     log("Running new version.");

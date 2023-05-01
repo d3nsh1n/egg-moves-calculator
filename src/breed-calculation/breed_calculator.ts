@@ -1,13 +1,13 @@
-import { BreedingPath, MoveParents, ParentInfo, SuggestedMove } from "../lib";
-import { MoveUsage } from "../Smogon Data Collection/smogonlib";
-import { getMoveUsage } from "../Smogon Data Collection/smogon_stats";
+import { BreedingPath, MoveParents, ParentInfo, SuggestedMove } from "../lib/lib";
+import { MoveUsage } from "../smogon-data-collection/smogonlib";
+import { getMoveUsage } from "../smogon-data-collection/smogon_stats";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { performance } from "perf_hooks";
-import { unboundLog, warn } from "../logger";
-import { toPixelmonMove, toPixelmonName } from "../Smogon Data Collection/smogonutils";
-import { getMoveParents } from "../Pixelmon Data Manager/pixelmonutils";
-import { DataManager } from "../Pixelmon Data Manager/data_manager";
+import { unboundLog, warn } from "../lib/logger";
+import { toPixelmonMove, toPixelmonName } from "../smogon-data-collection/smogonutils";
+import { getMoveParents } from "../pixelmon-data-manager/pixelmonutils";
+import { DataManager } from "../pixelmon-data-manager/data_manager";
 
 const __CONTEXT__ = "BreedCalc";
 const LOG = true;

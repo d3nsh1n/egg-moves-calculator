@@ -1,6 +1,6 @@
 import is from "@sindresorhus/is";
-import { DataManager } from "../Pixelmon Data Manager/data_manager";
-import { getDefaultFormOfSpecies } from "../Pixelmon Data Manager/pixelmonutils";
+import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { getDefaultFormOfSpecies } from "../pixelmon-data-manager/pixelmonutils";
 
 export function toSmogonName(pixelmonName: string): string;
 export function toSmogonName(obj: Object): Object;

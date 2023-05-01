@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { MoveUsage, UsageMoves, UsageStats } from "./smogonlib";
 import { writeToTest } from "../main"; //
 import fs from "fs-extra";
-import { unboundLog } from "../logger";
+import { unboundLog } from "../lib/logger";
 import { toSmogonName } from "./smogonutils";
 
 const __CONTEXT__ = "SmogonStats";

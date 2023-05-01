@@ -1,5 +1,5 @@
-import { Pokemon } from "src/pokemon";
-import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./Pixelmon Data Manager/pixelmonlib";
+import { Pokemon } from "src/lib/pokemon";
+import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../pixelmon-data-manager/pixelmonlib";
 
 export const MOVE_KEYS: MoveKeys[] = ["levelUpMoves", "tutorMoves", "eggMoves", "tmMoves8", "trMoves", "hmMoves", "transferMoves"]; //, "tmMoves7", "tmMoves6", "tmMoves5", "tmMoves4", "tmMoves3", "tmMoves2", "tmMoves1", "tmMoves"];
 export const INHERITABLE_KEYS: MoveKeys[] = ["tutorMoves", "eggMoves", "transferMoves", "levelUpMoves"];

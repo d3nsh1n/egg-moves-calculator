@@ -1,7 +1,7 @@
 import is from "@sindresorhus/is";
-import { EggGroupsLib, MoveLearnData, MoveParents } from "../lib";
-import { error, unboundLog } from "../logger";
-import { Pokemon } from "../pokemon";
+import { EggGroupsLib, MoveLearnData, MoveParents } from "../lib/lib";
+import { error, unboundLog } from "../lib/logger";
+import { Pokemon } from "../lib/pokemon";
 import { DataManager } from "./data_manager";
 import { LevelUpMoveData, MoveKeys } from "./pixelmonlib";
 

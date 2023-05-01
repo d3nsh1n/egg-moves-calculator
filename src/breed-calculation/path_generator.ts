@@ -1,10 +1,10 @@
 import { performance } from "perf_hooks";
-import { BreedingPath, ParentInfo, SuggestedMove } from "../lib";
+import { BreedingPath, ParentInfo, SuggestedMove } from "../lib/lib";
 import chalk from "chalk";
-import { arrayEquals, deepCopy } from "../utils";
-import { unboundLog } from "../logger";
-import { isSameEvoLine } from "../Pixelmon Data Manager/pixelmonutils";
-import { DataManager } from "../Pixelmon Data Manager/data_manager";
+import { arrayEquals, deepCopy } from "../lib/utils";
+import { unboundLog } from "../lib/logger";
+import { isSameEvoLine } from "../pixelmon-data-manager/pixelmonutils";
+import { DataManager } from "../pixelmon-data-manager/data_manager";
 
 const __CONTEXT__ = "Path Generator";
 const LOG = true;
