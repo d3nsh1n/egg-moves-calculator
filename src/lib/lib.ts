@@ -49,26 +49,3 @@ export type BreedingPath = {
     //     [parent: string]: ParentInfo;
     // };
 };
-
-//! # === LIBRARIES === #
-export type LearnableMovesLib = {
-    [pokemon: string]: {
-        [move: string]: LearnMethodInfo;
-    };
-};
-
-export type EggGroupsLib = {
-    [group in EggGroups]?: string[];
-};
-
-export type PokemonLib = {
-    [pokemon: string]: Pokemon;
-};
-
-export type EvoLinesLib = {
-    [base: string]: string[];
-};
-
-export type FormIndexLib = {
-    [species: string]: string[];
-};

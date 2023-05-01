@@ -26,18 +26,18 @@ const eggGroupsPath = `${dataOutDir}/egg_groups.json`;
 const evoLinesPath = `${dataOutDir}/evo_lines.json`;
 
 export class DataManager {
-    public static POKEMON: PokemonLib = {};
-    public static FORM_INDEX: FormIndexLib = {};
+    public static POKEMON: Map<string, Pokemon> = new Map();
+    public static FORM_INDEX: Map<string, string[]> = new Map();
 
     /** Pokemon: Move: LearnMethodInfo
      * Lists every Pokemon and all the possible moves it can learn
      */
-    public static LEARNABLE_MOVES: LearnableMovesLib = {};
+    public static LEARNABLE_MOVES: Map<string, { [move: string]: LearnMethodInfo }> = new Map();
 
     /** EggGroup: ListOfPokemonInIt
      * List of Egg Groups and arrays of Pokemon in them
      */
-    public static EGG_GROUPS: EggGroupsLib = {};
+    public static EGG_GROUPS: Map<EggGroups, string[]> = new Map();
 
     /** FullName: Pokemon
      * Storage of all PokemonData loaded (parsed JSON files)
@@ -83,11 +83,11 @@ export class DataManager {
                 const pokemon: Pokemon = new Pokemon(pokemonData, form);
 
                 // Store Pokemon data
-                DataManager.POKEMON[pokemon.toString()] = pokemon;
+                DataManager.POKEMON.set(pokemon.toString(), pokemon);
 
                 // Register form in the index
-                DataManager.FORM_INDEX[pokemon.name] ||= [];
-                DataManager.FORM_INDEX[pokemon.name].push(pokemon.form);
+                if (!DataManager.FORM_INDEX.has(pokemon.name)) DataManager.FORM_INDEX.set(pokemon.name, []);
+                DataManager.FORM_INDEX.get(pokemon.name)!.push(pokemon.form);
             }
         }
         log(chalk.bgGreenBright(`_loadDataFromFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
@@ -97,9 +97,8 @@ export class DataManager {
         const eggGroupsLib: EggGroupsLib = {};
         const pokemonLib = DataManager.POKEMON;
 
-        for (const pokemonName in pokemonLib) {
+        for (const [pokemonName, pokemon] of pokemonLib) {
             //* Forms don't have different egg groups, but we need to store them for each form
-            const pokemon = pokemonLib[pokemonName];
             if (is.undefined(pokemon.eggGroups)) continue;
 
             for (const group of pokemon.eggGroups) {
@@ -117,16 +116,14 @@ export class DataManager {
         const pokemonLib = DataManager.POKEMON;
 
         // Establish evo lines
-        for (const pokemonName in pokemonLib) {
-            const pokemon = pokemonLib[pokemonName];
+        for (const [pokemonName, pokemon] of pokemonLib) {
             if (pokemon.isBasic()) {
                 evoLinesLib[pokemonName] = [];
             }
         }
 
         // Populate evo lines
-        for (const pokemonName in pokemonLib) {
-            const pokemon = pokemonLib[pokemonName];
+        for (const [pokemonName, pokemon] of pokemonLib) {
             const basic = pokemon.getBasic();
             // log(chalk.blue(`Adding ${form} to ${basic}`));
             if (is.undefined(evoLinesLib[basic.toString()])) {
@@ -141,13 +138,11 @@ export class DataManager {
     }
 
     private static _generateLearnableMoves(): LearnableMovesLib {
-        const learnableMoves: LearnableMovesLib = {};
+        const learnableMoves: Map<string, { [move: string]: LearnMethodInfo }> = new Map();
         const pokemonLib = DataManager.POKEMON;
 
         //* Initial Pass
-        for (const pokemonName in pokemonLib) {
-            const pokemon: Pokemon = pokemonLib[pokemonName];
-
+        for (const [pokemonName, pokemon] of pokemonLib) {
             learnableMoves[pokemonName] ||= {};
 
             for (const learnMethod in pokemon.moves) {
@@ -221,16 +216,16 @@ export class DataManager {
 
     //! Methods
     //#region Methods
-    public static getPokemonInEggGroups(...groups: string[]): string[] {
+    public static getPokemonInEggGroups(...groups: EggGroups[]): string[] {
         const out: string[] = [];
         const eggGroupLib = DataManager.EGG_GROUPS;
 
         for (const group of groups) {
-            if (!Object.values(EggGroups).includes(group as EggGroups)) {
+            if (!Object.values(EggGroups).includes(group)) {
                 console.error(chalk.red(`Incorrect Egg Group provided: ${group}.`));
                 continue;
             }
-            out.push(...eggGroupLib[group as EggGroups]!);
+            out.push(...(eggGroupLib.get(group) || []));
         }
         return [...new Set(out)];
     }

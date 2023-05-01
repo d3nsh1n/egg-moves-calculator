@@ -3,9 +3,9 @@ import "./pixelmon-data-manager/data_manager";
 import { DataManager } from "./pixelmon-data-manager/data_manager";
 import chalk from "chalk";
 import { getMoveUsage, getUsageStats } from "./smogon-data-collection/smogon_stats";
-import { suggestMoves } from "./breed-calculation/breed_calculator";
+import { suggestMoves } from "./breed-calculation/move_suggestion";
 import { ParentInfo } from "./lib/lib";
-import { compressPaths, getBreedingPaths, toParentInfo } from "./breed-calculation/path_generator";
+import { compressPaths, getBreedingPaths, toParentInfo } from "./breed-calculation/paths";
 import { sortedParentsInfo2 } from "./lib/testing";
 import { unboundLog } from "./lib/logger";
 
