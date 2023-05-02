@@ -47,10 +47,10 @@ export class DataManager {
         //// DataManager.EggGroupRegistry = DataManager.LoadOrCreate(eggGroupsPath, DataManager._generateEggGroups, forceLoad);
         //// DataManager.MoveRegistry = DataManager.LoadOrCreate(learnableMovesPath, DataManager._generateMoveRegistry, forceLoad);
         //todo Serialize and save Registry
-        warn("A");
         DataManager.PokemonRegistry = new PokemonRegistry(pokemonData);
         fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
 
+        warn("A");
         DataManager.PokemonRegistry.generateEvoLines();
         warn("B");
         DataManager.EggGroupRegistry = new EggGroupRegistry(DataManager.PokemonRegistry);

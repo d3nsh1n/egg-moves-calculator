@@ -141,6 +141,9 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
         const preEvolutions = this.getPreEvolutions();
         const isBasic = preEvolutions.length === 0;
         const speciesBasicStage = isBasic ? this.name : findBasicPreevolution(preEvolutions).name;
+        if (this.toString() === "Wormadam-plant") {
+            console.log("DB###");
+        }
 
         // basic-form
         if (this.form !== "" && hasForm(speciesBasicStage, this.form)) {
