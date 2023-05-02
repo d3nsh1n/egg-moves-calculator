@@ -21,17 +21,15 @@ export const MISFORMS: string[] = [];
 const dataDir = "data";
 const rawDataDir = `${dataDir}/species`;
 const dataOutDir = `${dataDir}/out`;
-const learnableMovesPath = `${dataOutDir}/learnable_moves.json`;
-const eggGroupsPath = `${dataOutDir}/egg_groups.json`;
-const evoLinesPath = `${dataOutDir}/evo_lines.json`;
+const pokemonRegistry = `${dataOutDir}/PokemonRegistry.json`;
+const moveRegistry = `${dataOutDir}/MoveRegistry.json`;
+const eggGroupsPath = `${dataOutDir}/EggGroups.json`;
+const evoLinesPath = `${dataOutDir}/EvoLines.json`;
 //* =========================== * * * ===========================
 
 export class DataManager {
     public static PokemonRegistry: PokemonRegistry;
-    public static EvoLines: Map<string, string[]>;
-
     public static MoveRegistry: MoveRegistry;
-
     public static EggGroupRegistry: EggGroupRegistry;
 
     //* =========================== Constructor ===========================
@@ -48,13 +46,16 @@ export class DataManager {
         //// DataManager.MoveRegistry = DataManager.LoadOrCreate(learnableMovesPath, DataManager._generateMoveRegistry, forceLoad);
         //todo Serialize and save Registry
         DataManager.PokemonRegistry = new PokemonRegistry(pokemonData);
-        fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
-
-        warn("A");
+        log("DONE: PokemonRegistry");
+        // fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
         DataManager.PokemonRegistry.generateEvoLines();
-        warn("B");
+        log("DONE: EvoLines");
         DataManager.EggGroupRegistry = new EggGroupRegistry(DataManager.PokemonRegistry);
+        log("DONE: EggGroups");
         DataManager.MoveRegistry = new MoveRegistry(DataManager.PokemonRegistry);
+        log("DONE: MoveRegistry");
+        console.log("Pokemon:", DataManager.PokemonRegistry.all().size);
+        DataManager.MoveRegistry.populateEggMoves();
 
         log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
 
@@ -89,10 +90,11 @@ export class DataManager {
     /** Write Files */
     static _writeLibrariesToFiles() {
         const startTime = performance.now();
-        fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
+        fs.emptyDirSync(dataOutDir);
+        fs.writeFileSync(pokemonRegistry, JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
         fs.writeFileSync(eggGroupsPath, JSON.stringify(DataManager.EggGroupRegistry, mapReplacer, 4));
-        fs.writeFileSync(learnableMovesPath, JSON.stringify(DataManager.MoveRegistry, mapReplacer, 4));
-        fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.EvoLines, mapReplacer, 4));
+        fs.writeFileSync(moveRegistry, JSON.stringify(DataManager.MoveRegistry, mapReplacer, 4));
+        fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.PokemonRegistry.EvoLines, mapReplacer, 4));
         log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
     }
 

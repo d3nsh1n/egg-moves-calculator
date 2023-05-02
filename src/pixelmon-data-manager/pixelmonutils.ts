@@ -69,9 +69,9 @@ export function toPokemonName(species: string, form: string): string {
 
 export function findBasicPreevolution(preEvolutions: string[]): Pokemon {
     for (const pr of preEvolutions) {
-        const prPokemon = DataManager.PokemonRegistry.get(pr) || getDefaultFormOfSpecies(pr);
+        const prPokemon = DataManager.PokemonRegistry.get(pr, true) || getDefaultFormOfSpecies(pr);
         if (!prPokemon) {
-            throw console.log("prPokemon null", preEvolutions);
+            throw log("prPokemon null", preEvolutions);
         }
         if (is.undefined(prPokemon.preEvolutions) || prPokemon.preEvolutions.length === 0) return prPokemon;
     }
@@ -89,7 +89,7 @@ export function getFormWithTag(speciesName: string, tag: string): Pokemon | null
 }
 
 export function getDefaultFormOfSpecies(speciesName: string): Pokemon | null {
-    const pokemon: Pokemon = DataManager.PokemonRegistry.get(speciesName);
+    const pokemon = DataManager.PokemonRegistry.get(speciesName, true);
     if (!is.undefined(pokemon)) {
         return pokemon;
     }

@@ -3,7 +3,7 @@ import { INHERITABLE_KEYS, LearnMethodInfo, MoveLearnData } from "./lib";
 import { DataManager } from "../pixelmon-data-manager/_data_manager";
 import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "../pixelmon-data-manager/pixelmonlib";
 import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, extractLearnMethodInfoBase, hasForm, toPokemonName } from "../pixelmon-data-manager/pixelmonutils";
-import { error } from "console";
+import { error, warn } from "console";
 import { PokemonRegistry } from "../pixelmon-data-manager/_pokemon_registry";
 
 export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
@@ -74,11 +74,14 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     }
 
     public canLearn(move: string): boolean {
+        if (this.toString() === "Greninja-ash") return false;
         //? Performant way. Cleaner alternative: search this.moves
-        const dataInRegistry = DataManager.MoveRegistry.getPokemonMoves(this.toString());
+        const dataInRegistry = DataManager.MoveRegistry?.getPokemonMoves(this.toString());
+        // console.log(DataManager.MoveRegistry.getPokemonMoves(this.toString()) === undefined, this.toString());
 
         if (dataInRegistry === undefined) {
             // Registry not yet initialized, or something went wrong.
+            warn("No Move Registry found! Manually calculating canLearn()", this.toString());
             for (const learnMethod in this.moves) {
                 if (this.getMovesLearnInfo(learnMethod as keyof MovesData).has(move)) return true;
             }
@@ -117,6 +120,7 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
             const learnMethodInfoBase = extractLearnMethodInfoBase(moveOrLevelUpData);
 
             for (const [moveName, moveInfoBase] of learnMethodInfoBase) {
+                moveInfoBase.learnMethods.push(learnMethod);
                 if (out.has(moveName)) {
                     // Move is learned via more than one means, append new data
                     const inf = out.get(moveName);
@@ -141,10 +145,6 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
         const preEvolutions = this.getPreEvolutions();
         const isBasic = preEvolutions.length === 0;
         const speciesBasicStage = isBasic ? this.name : findBasicPreevolution(preEvolutions).name;
-        if (this.toString() === "Wormadam-plant") {
-            console.log("DB###");
-        }
-
         // basic-form
         if (this.form !== "" && hasForm(speciesBasicStage, this.form)) {
             const pokemonName = toPokemonName(speciesBasicStage, this.form);

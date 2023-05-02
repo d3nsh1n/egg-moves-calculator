@@ -9,6 +9,7 @@ import { ParentInfo } from "./lib/lib";
 import { compressPaths, getBreedingPaths, toParentInfo } from "./breed-calculation/paths";
 import { sortedParentsInfo2 } from "./lib/testing";
 import { Logger } from "./lib/logger";
+import { MoveKeys } from "./pixelmon-data-manager/pixelmonlib";
 
 const { log, warn, error } = new Logger(true, "Main", "#1234FF");
 
@@ -18,9 +19,8 @@ const filePath = "data/species/092_gastly.json";
 export async function main() {
     log("Running new version.");
     new DataManager(true);
-
+    const pokemon = DataManager.PokemonRegistry.get("Gastly");
     const moves = await suggestMoves("Gastly", 4, ["Disable", "Clear Smog", "Grudge"]);
-    console.log({ moves });
     const info = toParentInfo(moves);
     console.log({ info });
     const x = getBreedingPaths(info);

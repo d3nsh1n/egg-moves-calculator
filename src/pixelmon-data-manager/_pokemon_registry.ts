@@ -32,7 +32,6 @@ export class PokemonRegistry {
 
         // Populate evo lines
         for (const [pokemonName, pokemon] of this.pokemonMap) {
-            log("done", pokemonName);
             const basic = pokemon.getBasic(this);
             const lineMembers = this.EvoLines.get(basic.toString());
             if (is.undefined(lineMembers)) {
@@ -40,6 +39,7 @@ export class PokemonRegistry {
                 continue;
             }
             lineMembers.push(pokemonName);
+            const x = this.get("asd", true);
         }
     }
 
@@ -48,9 +48,11 @@ export class PokemonRegistry {
         return this.pokemonMap;
     }
 
-    public get(pokemonName: string) {
+    public get(pokemonName: string, allowUndefined: true): Pokemon | undefined;
+    public get(pokemonName: string): Pokemon;
+    public get(pokemonName: string, allowUndefined?: true): Pokemon | undefined {
         const pokemon = this.pokemonMap.get(pokemonName);
-        if (pokemon === undefined) {
+        if (pokemon === undefined && !allowUndefined) {
             throw error(`No data found for ${pokemonName}`);
         }
         return pokemon;

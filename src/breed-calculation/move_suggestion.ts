@@ -15,15 +15,15 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
-    const finalEvo = DataManager.PokemonRegistry[finalEvoFullName];
+    const finalEvo = DataManager.PokemonRegistry.get(finalEvoFullName);
     const basicForm = finalEvo.getBasic();
 
     // Guard
-    if (is.undefined(DataManager.PokemonRegistry[basicForm.toString()])) {
+    if (is.undefined(DataManager.PokemonRegistry.get(basicForm.toString(), true))) {
         log(chalk.bgRed(`[ERR!] No data found for ${basicForm.toString()}.`));
         return [];
     }
-    const eggMoves = basicForm.getMoves("eggMoves").map((m) => m.name);
+    const eggMoves = Array.from(basicForm.getMovesLearnInfo("eggMoves").keys());
 
     //? Grab info for all moves, sort/filter (to 4 or more) before returning
     const suggestedMoves: SuggestedMove[] = [];
@@ -39,10 +39,11 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
 
     for (const usedMove in moveUsage) {
         // Guard
-        if (is.undefined(DataManager.LEARNABLE_MOVES[basicForm.toString()][usedMove])) {
-            log(warn(`Base form cannot learn: ${usedMove}`));
-            if (DataManager.LEARNABLE_MOVES[fullName]?.[usedMove] !== undefined) {
-                log(DataManager.LEARNABLE_MOVES[fullName][usedMove].learnMethods);
+        if (!DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.has(usedMove)) {
+            warn(`Basic form cannot learn: ${usedMove}`);
+            const fullNameMoveInf = DataManager.MoveRegistry.getPokemonMoves(fullName)?.get(usedMove);
+            if (fullNameMoveInf) {
+                log(fullNameMoveInf.learnMethods);
             } else {
                 log(chalk.yellow(`Could not find acquisition data for move: ${usedMove}/${fullName}!`));
             }
@@ -50,18 +51,18 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
         }
 
         // Only suggest moves that can be bred on the Pokemon
-        if (!basicForm.canInheritMove(usedMove)) {
+        if (!basicForm.canInherit(usedMove)) {
             continue;
         }
 
         // Get learn Info
-        const learnMethodInfo = DataManager.LEARNABLE_MOVES[basicForm.toString()][usedMove];
-        const learnMethods = learnMethodInfo.learnMethods;
-        const parents: MoveParents = getMoveParents(learnMethodInfo.parents || [], usedMove);
+        const learnMethodInfo = DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.get(usedMove)!;
+        const learnMethods = learnMethodInfo?.learnMethods!;
+        const parents: MoveParents = getMoveParents(learnMethodInfo?.parents || [], usedMove);
 
         // Egg Move Guard
         if (eggMoves?.includes(usedMove) && !parents) {
-            log(chalk.bgRed(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${basicForm.toString()}`));
+            error(`[ERR!] Could not find parents for Egg Move ${usedMove} for ${basicForm.toString()}`);
             continue;
         }
 
@@ -78,7 +79,6 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     }
 
     log(chalk.bgGreen("[INFO] Egg Moves not included:"));
-    log(eggMoves);
     suggestedMoves.sort(_sortSuggested);
     const end = amount || suggestMoves.length;
     log(
