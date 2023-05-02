@@ -1,7 +1,7 @@
 {
     "type": "module",
     "private": true,
-    "main": "kernel/js/main.js",
+    "main": "dist/main.js",
     "scripts": {
         ".": "node .",
         "dev": "npx nodemon .",

@@ -1,36 +1,34 @@
 import { LearnMethodInfo } from "../lib/lib";
-
-type Pokemon = string;
-type Move = string;
+import { PokemonRegistry } from "./_pokemon_registry";
+import { MoveKeys } from "./pixelmonlib";
+import { getParentsForMove } from "./pixelmonutils";
 
 export class MoveRegistry {
-    private Pokemon: Map<Pokemon, Set<Move>> = new Map();
-    private Moves: Map<Move, Set<Pokemon>> = new Map();
-    private LearnInfo: Map<[Pokemon, Move], LearnMethodInfo> = new Map();
+    private Pokemon: Map<string, Set<string>> = new Map();
+    private Moves: Map<string, Set<string>> = new Map();
+    private LearnInfo: Map<[string, string], LearnMethodInfo> = new Map();
 
-    // public addPokemonMoves(pokemon: Pokemon, newMoves: Move[]) {
-    //     const uniqueMoves = new Set(newMoves);
+    constructor(pokemonRegistry: PokemonRegistry) {
+        for (const [pokemonName, pokemon] of pokemonRegistry.all()) {
+            // Pokemon: {
+            //     moves: {
+            //         levelupMoves: [ ... ],
+            //         tutorMoves: [ ... ]
+            //     }
+            // }
+            for (const learnMethod in pokemon.moves) {
+                const movesLearnInfo = pokemon.getMovesLearnInfo(learnMethod as MoveKeys);
+                for (const [move, learnInfo] of movesLearnInfo) {
+                    if (learnInfo.learnMethods.includes("eggMoves")) {
+                        learnInfo.parents = getParentsForMove(pokemon, move, "eggMoves");
+                    }
+                    this.addMove(pokemonName, move, learnInfo);
+                }
+            }
+        }
+    }
 
-    //     const pokemonMoves = MoveRegistry.Pokemon.getOrCreate(pokemon, new Set());
-
-    //     for (const newMove of uniqueMoves) {
-    //         pokemonMoves.add(newMove);
-    //         this.addMoveSources(newMove, [pokemon]);
-    //     }
-    // }
-
-    // public addMoveSources(move: Move, pokemon: Pokemon[]) {
-    //     const uniquePokemon = new Set(pokemon);
-
-    //     const moveSources = MoveRegistry.Moves.getOrCreate(move, new Set());
-
-    //     for (const pokemon of uniquePokemon) {
-    //         moveSources.add(pokemon);
-    //         this.addPokemonMoves(pokemon, [move]);
-    //     }
-    // }
-
-    public addMove(pokemon: Pokemon, move: Move, learnInfo: LearnMethodInfo) {
+    public addMove(pokemon: string, move: string, learnInfo: LearnMethodInfo) {
         // Register Move and Pokemon
         const existingPokemonData = this.Pokemon.getOrCreate(pokemon, new Set([]));
         const existingMoveData = this.Moves.getOrCreate(move, new Set([]));
@@ -49,7 +47,7 @@ export class MoveRegistry {
         }
     }
 
-    public getPokemonMoves(pokemon: Pokemon): Map<string, LearnMethodInfo> | undefined {
+    public getPokemonMoves(pokemon: string): Map<string, LearnMethodInfo> | undefined {
         const out = new Map();
         const moves = this.Pokemon.get(pokemon);
         if (moves === undefined) return undefined;
@@ -61,7 +59,7 @@ export class MoveRegistry {
         return out;
     }
 
-    public getMoveSources(move: Move): Map<string, LearnMethodInfo> {
+    public getMoveSources(move: string): Map<string, LearnMethodInfo> {
         const out = new Map();
         const pokemon = this.Moves.get(move);
         if (pokemon === undefined) return out;

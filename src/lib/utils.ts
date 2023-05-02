@@ -1,14 +1,9 @@
-import { EggGroupsLib, INHERITABLE_KEYS, MoveLearnData, MoveParents } from "./lib";
+import { INHERITABLE_KEYS, MoveLearnData, MoveParents } from "./lib";
 import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "../pixelmon-data-manager/pixelmonlib";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { SetRequired } from "type-fest";
-import { error, unboundLog } from "./logger";
 import { Pokemon } from "./pokemon";
-
-const __CONTEXT__ = "";
-const LOG = false;
-const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#995599", ...data);
 
 export function EmptyObject<T>(): T {
     return {} as T;

@@ -2,13 +2,11 @@ import { performance } from "perf_hooks";
 import { BreedingPath, ParentInfo, SuggestedMove } from "../lib/lib";
 import chalk from "chalk";
 import { arrayEquals, deepCopy } from "../lib/utils";
-import { unboundLog } from "../lib/logger";
+import { Logger } from "../lib/logger";
 import { isSameEvoLine } from "../pixelmon-data-manager/pixelmonutils";
-import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { DataManager } from "../pixelmon-data-manager/_data_manager";
 
-const __CONTEXT__ = "Path Generator";
-const LOG = true;
-const log = (data: any) => unboundLog(LOG, __CONTEXT__, "#234807", data);
+const { log, warn, error } = new Logger(true, "PathGenerator", "#234807");
 
 export function toParentInfo(suggestedMoves: SuggestedMove[]): ParentInfo[] {
     const parentsInfo: ParentInfo[] = [];
@@ -108,12 +106,12 @@ export function compressPaths(paths: BreedingPath[]) {
     for (const path of paths) {
         for (const parentName of path.parents) {
             if (typeof parentName !== "string") continue;
-            const parent = DataManager.Pokemon[parentName];
+            const parent = DataManager.PokemonRegistry[parentName];
             for (const otherPath of [...paths.slice(paths.indexOf(path) + 1)]) {
                 // if (arrayEquals(path.parents.slice(path.parents.indexOf(parent), 1), otherPath.parents.slice(path.parents.indexOf(parent), 1)))
                 for (const otherParentName of otherPath.parents) {
                     if (typeof otherParentName !== "string" || otherParentName === parentName) continue;
-                    const otherParent = DataManager.Pokemon[otherParentName];
+                    const otherParent = DataManager.PokemonRegistry[otherParentName];
 
                     if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parentName), 1), otherPath.parents.slice(otherPath.parents.indexOf(otherParentName), 1))) {
                         console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName), 1)]);

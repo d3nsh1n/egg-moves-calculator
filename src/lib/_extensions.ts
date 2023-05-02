@@ -9,7 +9,7 @@ Map.prototype.getOrCreate = function <K, V>(key: K, valueIfMissing: V): V {
     const existing = this.get(key);
     if (existing === undefined) {
         this.set(key, valueIfMissing);
-        return valueIfMissing;
+        return this.get(key);
     } else {
         return existing;
     }

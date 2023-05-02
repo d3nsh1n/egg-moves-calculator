@@ -1,19 +1,17 @@
 import is from "@sindresorhus/is";
 import { LearnMethodInfo, MoveLearnData, MoveParents } from "../lib/lib";
-import { error, unboundLog } from "../lib/logger";
 import { Pokemon } from "../lib/pokemon";
-import { DataManager } from "./data_manager";
+import { DataManager } from "./_data_manager";
 import { LevelUpMoveData, MoveKeys } from "./pixelmonlib";
+import { Logger } from "../lib/logger";
 
-const __CONTEXT__ = "PixelmonUtils";
-const LOG = false;
-const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#121212", ...data);
+const { log, warn, error } = new Logger(true, "PixelmonUtils", "#121212");
 
 export function getParentsForMove(pokemon: Pokemon, move: string, method: MoveKeys): string[] {
     const out: string[] = [];
 
-    for (const potentialParentName of DataManager.getPokemonInEggGroups(...pokemon.getEggGroups())) {
-        const potentialParent = DataManager.Pokemon.get(potentialParentName);
+    for (const potentialParentName of DataManager.EggGroupRegistry.get(...pokemon.getEggGroups())) {
+        const potentialParent = DataManager.PokemonRegistry.get(potentialParentName);
         if (potentialParent === undefined) {
             throw error("Could not fetch Pokemon Data for", potentialParentName);
         }
@@ -55,7 +53,7 @@ export function parentIsValid(base: Pokemon, parent: Pokemon, method: MoveKeys):
 }
 
 export function shareEggGroup(pokemon1: Pokemon, pokemon2: Pokemon): boolean {
-    for (const [group, pokemonInGroup] of DataManager.EggGroups) {
+    for (const [group, pokemonInGroup] of DataManager.EggGroupRegistry.all()) {
         if (pokemonInGroup.includes(pokemon1.toString()) && pokemonInGroup.includes(pokemon2.toString())) return true;
     }
     return false;
@@ -71,7 +69,7 @@ export function toPokemonName(species: string, form: string): string {
 
 export function findBasicPreevolution(preEvolutions: string[]): Pokemon {
     for (const pr of preEvolutions) {
-        const prPokemon = DataManager.Pokemon.get(pr) || getDefaultFormOfSpecies(pr);
+        const prPokemon = DataManager.PokemonRegistry.get(pr) || getDefaultFormOfSpecies(pr);
         if (!prPokemon) {
             throw console.log("prPokemon null", preEvolutions);
         }
@@ -81,8 +79,8 @@ export function findBasicPreevolution(preEvolutions: string[]): Pokemon {
 }
 
 export function getFormWithTag(speciesName: string, tag: string): Pokemon | null {
-    for (const form of DataManager.FormIndex[speciesName]) {
-        const pokemon = DataManager.Pokemon[toPokemonName(speciesName, form)];
+    for (const form of DataManager.PokemonRegistry.Forms.get(speciesName)!) {
+        const pokemon = DataManager.PokemonRegistry.get(toPokemonName(speciesName, form));
         if (!is.undefined(pokemon.tags) && pokemon.tags.includes(tag)) {
             return pokemon;
         }
@@ -91,29 +89,30 @@ export function getFormWithTag(speciesName: string, tag: string): Pokemon | null
 }
 
 export function getDefaultFormOfSpecies(speciesName: string): Pokemon | null {
-    const pokemon: Pokemon = DataManager.Pokemon[speciesName];
+    const pokemon: Pokemon = DataManager.PokemonRegistry.get(speciesName);
     if (!is.undefined(pokemon)) {
         return pokemon;
     }
 
     // No "speciesname" form, need to find default form
-    if (is.undefined(DataManager.FormIndex[speciesName] || DataManager.FormIndex[speciesName].length === 0)) {
+    const forms = DataManager.PokemonRegistry.Forms.get(speciesName);
+    if (is.undefined(forms) || forms.length === 0) {
         log(error(`No default form can be found for ${speciesName}`));
         return null;
     }
 
-    const temp: Pokemon = DataManager.Pokemon[toPokemonName(speciesName, DataManager.FormIndex[speciesName][0])];
+    const temp: Pokemon = DataManager.PokemonRegistry.get(toPokemonName(speciesName, DataManager.PokemonRegistry.Forms.get(speciesName)![0]));
     const defaultForm: string = temp.getDefaultFormName();
-    return DataManager.Pokemon[toPokemonName(speciesName, defaultForm)] || null;
+    return DataManager.PokemonRegistry.get(toPokemonName(speciesName, defaultForm)) || null;
 }
 
 export function hasForm(speciesName: string, formName: string): boolean {
-    return DataManager.FormIndex[speciesName].includes(formName);
+    return DataManager.PokemonRegistry.Forms.get(speciesName)?.includes(formName) || false;
 }
 
 export function forEachPokemon(callback: (pokemon: Pokemon) => void) {
-    for (const pokemonName in DataManager.Pokemon) {
-        callback(DataManager.Pokemon[pokemonName]);
+    for (const pokemonName in DataManager.PokemonRegistry) {
+        callback(DataManager.PokemonRegistry.get(pokemonName));
     }
 }
 
@@ -136,5 +135,7 @@ export function extractLearnMethodInfoBase(move: string | LevelUpMoveData): Map<
 }
 
 export function parentsThatLearnFromMethod(pokemonName: string, move: string, method: MoveKeys = "levelUpMoves") {
-    return DataManager.LEARNABLE_MOVES[pokemonName][move].parents?.filter((p) => DataManager.LEARNABLE_MOVES[p][move].learnMethods.includes(method));
+    return DataManager.MoveRegistry.getPokemonMoves(pokemonName)
+        ?.get(move)
+        ?.parents?.filter((p) => DataManager.MoveRegistry.getPokemonMoves(p)?.get(move)?.learnMethods.includes(method));
 }

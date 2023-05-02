@@ -1,9 +1,10 @@
 import is from "@sindresorhus/is";
 import { INHERITABLE_KEYS, LearnMethodInfo, MoveLearnData } from "./lib";
-import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { DataManager } from "../pixelmon-data-manager/_data_manager";
 import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "../pixelmon-data-manager/pixelmonlib";
 import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, extractLearnMethodInfoBase, hasForm, toPokemonName } from "../pixelmon-data-manager/pixelmonutils";
 import { error } from "console";
+import { PokemonRegistry } from "../pixelmon-data-manager/_pokemon_registry";
 
 export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     name: string;
@@ -88,11 +89,11 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     }
 
     public getEggGroups(): EggGroups[] {
-        return this.eggGroups || DataManager.Pokemon.get(this.name)?.eggGroups || this.getDefaultForm().eggGroups;
+        return this.eggGroups || DataManager.PokemonRegistry.get(this.name)?.eggGroups || this.getDefaultForm().eggGroups;
     }
 
     public getForms(): string[] {
-        return DataManager.FormIndex.get(this.name)!;
+        return DataManager.PokemonRegistry.Forms.get(this.name)!;
     }
 
     public getDefaultFormName(): string {
@@ -100,7 +101,7 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     }
 
     public getDefaultForm(): Pokemon {
-        return DataManager.Pokemon.get(toPokemonName(this.name, this.getDefaultFormName()))!;
+        return DataManager.PokemonRegistry.get(toPokemonName(this.name, this.getDefaultFormName()))!;
     }
 
     public getPreEvolutions(): string[] {
@@ -134,7 +135,8 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
         return this.getPreEvolutions().length === 0;
     }
 
-    public getBasic(): Pokemon {
+    public getBasic(registry?: PokemonRegistry): Pokemon {
+        const PokemonRegistry = registry || DataManager.PokemonRegistry;
         // Get preevolutions from the Pokemon data, the Pokemon data of its default form, or assume empty
         const preEvolutions = this.getPreEvolutions();
         const isBasic = preEvolutions.length === 0;
@@ -143,7 +145,7 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
         // basic-form
         if (this.form !== "" && hasForm(speciesBasicStage, this.form)) {
             const pokemonName = toPokemonName(speciesBasicStage, this.form);
-            const pokemon = DataManager.Pokemon.get(pokemonName);
+            const pokemon = PokemonRegistry.get(pokemonName);
             if (!pokemon) {
                 throw error("No Pokemon data found for", pokemonName);
             }
@@ -160,6 +162,6 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
 
         // basic-default || basic
         const basicSpeciesDefaultForm = getDefaultFormOfSpecies(speciesBasicStage);
-        return basicSpeciesDefaultForm || DataManager.Pokemon.get(speciesBasicStage)!;
+        return basicSpeciesDefaultForm || PokemonRegistry.get(speciesBasicStage)!;
     }
 }

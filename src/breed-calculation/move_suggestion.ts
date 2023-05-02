@@ -4,24 +4,22 @@ import { getMoveUsage } from "../smogon-data-collection/smogon_stats";
 import chalk from "chalk";
 import is from "@sindresorhus/is";
 import { performance } from "perf_hooks";
-import { unboundLog, warn } from "../lib/logger";
 import { toPixelmonMove, toPixelmonName } from "../smogon-data-collection/smogonutils";
 import { getMoveParents } from "../pixelmon-data-manager/pixelmonutils";
-import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { DataManager } from "../pixelmon-data-manager/_data_manager";
+import { Logger } from "../lib/logger";
 
-const __CONTEXT__ = "BreedCalc";
-const LOG = true;
-const log = (...data: any) => unboundLog(LOG, __CONTEXT__, "#99aa22", ...data);
+const { log, warn, error } = new Logger(true, "BreedCalc", "#99aa22");
 
 export async function suggestMoves(fullName: string, amount?: number, forceInclude: string[] = []): Promise<SuggestedMove[]> {
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
-    const finalEvo = DataManager.Pokemon[finalEvoFullName];
+    const finalEvo = DataManager.PokemonRegistry[finalEvoFullName];
     const basicForm = finalEvo.getBasic();
 
     // Guard
-    if (is.undefined(DataManager.Pokemon[basicForm.toString()])) {
+    if (is.undefined(DataManager.PokemonRegistry[basicForm.toString()])) {
         log(chalk.bgRed(`[ERR!] No data found for ${basicForm.toString()}.`));
         return [];
     }

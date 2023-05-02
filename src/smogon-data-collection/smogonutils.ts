@@ -1,5 +1,5 @@
 import is from "@sindresorhus/is";
-import { DataManager } from "../pixelmon-data-manager/data_manager";
+import { DataManager } from "../pixelmon-data-manager/_data_manager";
 import { getDefaultFormOfSpecies } from "../pixelmon-data-manager/pixelmonutils";
 
 export function toSmogonName(pixelmonName: string): string;
@@ -41,7 +41,7 @@ export function toPixelmonName(arg: any): any {
 
         // Turn "Mimikyu" into "Mimikyu-disguise" for example
 
-        pixelmonName = !is.undefined(DataManager.Pokemon[pixelmonName]) ? pixelmonName : getDefaultFormOfSpecies(pixelmonName)?.toString() || "NOTFOUND";
+        pixelmonName = !is.undefined(DataManager.PokemonRegistry[pixelmonName]) ? pixelmonName : getDefaultFormOfSpecies(pixelmonName)?.toString() || "NOTFOUND";
 
         //
         return pixelmonName;
