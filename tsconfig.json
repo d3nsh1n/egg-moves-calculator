@@ -12,8 +12,11 @@
         "sourceMap": true,
         "noImplicitReturns": true,
         "baseUrl": ".",
-        "outDir": "toolchain-cache/ts-output",
-        "lib": ["esnext"]
+        "outDir": "dist",
+        "lib": ["esnext"],
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "isolatedModules": true
     },
     "compileOnSave": true,
     "include": ["src/**/*.ts"],

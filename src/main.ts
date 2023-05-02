@@ -21,7 +21,9 @@ console.log("a", "a", "asfldhf", "dsflkjhs");
 export async function main() {
     log("Running new version.");
     new DataManager(true);
-
+    const pok = DataManager.POKEMON["Wormadam-plant"];
+    console.log(pok.getBasic().toString());
+    return;
     const moves = await suggestMoves("Gastly", 4, ["Disable", "Clear Smog", "Grudge"]);
     console.log({ moves });
     const info = toParentInfo(moves);

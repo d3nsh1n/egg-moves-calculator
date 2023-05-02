@@ -1,3 +1,8 @@
 {
-    "plugins": ["babel-plugin-add-import-extension"]
+    "plugins": ["babel-plugin-add-import-extension"],
+    "presets": [
+        //
+        // "@babel/preset-env",
+        "@babel/preset-typescript"
+    ]
 }
