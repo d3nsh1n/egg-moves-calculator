@@ -1,5 +1,5 @@
 import { performance } from "perf_hooks";
-import { PokemonLib, EggGroupsLib, LearnableMovesLib, MOVE_KEYS, EvoLinesLib, MoveLearnData, LearnMethodInfo, FormIndexLib } from "../lib/lib";
+import { MOVE_KEYS, MoveLearnData, LearnMethodInfo } from "../lib/lib";
 import chalk from "chalk";
 import fs from "fs-extra";
 import { EggGroups, FormData, LevelUpMoveData, MoveKeys, PokemonData } from "./pixelmonlib";
@@ -8,7 +8,8 @@ import ky from "ky-universal";
 import { error, unboundLog } from "../lib/logger";
 import is from "@sindresorhus/is";
 import { Pokemon } from "../lib/pokemon";
-import { toMoveLearnData, getParentsForMove } from "./pixelmonutils";
+import { extractLearnMethodInfoBase, getParentsForMove } from "./pixelmonutils";
+import { MoveRegistry } from "./move_registry";
 
 const __CONTEXT__ = "DataManager";
 const LOG = true;
@@ -26,25 +27,27 @@ const eggGroupsPath = `${dataOutDir}/egg_groups.json`;
 const evoLinesPath = `${dataOutDir}/evo_lines.json`;
 
 export class DataManager {
-    public static POKEMON: Map<string, Pokemon> = new Map();
-    public static FORM_INDEX: Map<string, string[]> = new Map();
+    //* =========================== Static Members ===========================
+    public static Pokemon: Map<string, Pokemon> = new Map();
+    public static FormIndex: Map<string, string[]> = new Map();
 
     /** Pokemon: Move: LearnMethodInfo
      * Lists every Pokemon and all the possible moves it can learn
      */
-    public static LEARNABLE_MOVES: Map<string, { [move: string]: LearnMethodInfo }> = new Map();
+    public static MoveRegistry: MoveRegistry;
 
     /** EggGroup: ListOfPokemonInIt
      * List of Egg Groups and arrays of Pokemon in them
      */
-    public static EGG_GROUPS: Map<EggGroups, string[]> = new Map();
+    public static EggGroups: Map<EggGroups, string[]>;
 
     /** FullName: Pokemon
      * Storage of all PokemonData loaded (parsed JSON files)
      */
 
-    public static EVO_LINES: EvoLinesLib = {};
+    public static EvoLines: Map<string, string[]>;
 
+    //* =========================== Constructor ===========================
     constructor(private forceLoad: boolean = false, private skipWrite: boolean = false) {
         let startTime = performance.now();
 
@@ -53,9 +56,12 @@ export class DataManager {
         DataManager._loadDataFromFiles(filenames);
 
         //* Load files if they exist, initialize with defaults if they don't.
-        DataManager.EGG_GROUPS = DataManager.LoadOrCreate(eggGroupsPath, DataManager._generateEggGroups, forceLoad);
-        DataManager.EVO_LINES = DataManager.LoadOrCreate(evoLinesPath, DataManager._generateEvolLines, forceLoad);
-        DataManager.LEARNABLE_MOVES = DataManager.LoadOrCreate(learnableMovesPath, DataManager._generateLearnableMoves, forceLoad);
+        DataManager.EggGroups = DataManager.LoadOrCreate(eggGroupsPath, DataManager._generateEggGroups, forceLoad);
+        DataManager.EvoLines = DataManager.LoadOrCreate(evoLinesPath, DataManager._generateEvoLines, forceLoad);
+
+        //todo Serialize and save Registry
+        // DataManager.MoveRegistry = DataManager.LoadOrCreate(learnableMovesPath, DataManager._generateMoveRegistry, forceLoad);
+        DataManager.MoveRegistry = DataManager._generateMoveRegistry();
 
         log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
 
@@ -64,7 +70,7 @@ export class DataManager {
         }
     }
 
-    //! Constructor Methods
+    //* =========================== Constructor Methods ===========================
     //#region Constructor Methods
 
     /**  Load data from the JSON files and store them as Pokemon in DataManager.POKEMON */
@@ -83,42 +89,42 @@ export class DataManager {
                 const pokemon: Pokemon = new Pokemon(pokemonData, form);
 
                 // Store Pokemon data
-                DataManager.POKEMON.set(pokemon.toString(), pokemon);
+                DataManager.Pokemon.set(pokemon.toString(), pokemon);
 
                 // Register form in the index
-                if (!DataManager.FORM_INDEX.has(pokemon.name)) DataManager.FORM_INDEX.set(pokemon.name, []);
-                DataManager.FORM_INDEX.get(pokemon.name)!.push(pokemon.form);
+                if (!DataManager.FormIndex.has(pokemon.name)) DataManager.FormIndex.set(pokemon.name, []);
+                DataManager.FormIndex.get(pokemon.name)!.push(pokemon.form);
             }
         }
         log(chalk.bgGreenBright(`_loadDataFromFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
 
-    private static _generateEggGroups(): EggGroupsLib {
-        const eggGroupsLib: EggGroupsLib = {};
-        const pokemonLib = DataManager.POKEMON;
+    private static _generateEggGroups(): Map<EggGroups, string[]> {
+        const out: Map<EggGroups, string[]> = new Map();
+        const pokemonLib = DataManager.Pokemon;
 
         for (const [pokemonName, pokemon] of pokemonLib) {
-            //* Forms don't have different egg groups, but we need to store them for each form
+            // Forms don't have different egg groups, but we need to store them for each form
             if (is.undefined(pokemon.eggGroups)) continue;
 
             for (const group of pokemon.eggGroups) {
-                eggGroupsLib[group] ||= [];
-                if (eggGroupsLib[group]!.includes(pokemonName)) continue;
-                eggGroupsLib[group]!.push(pokemonName);
+                const groupMembers = out.getOrCreate(group, []);
+                if (groupMembers.includes(pokemonName)) continue;
+                groupMembers.push(pokemonName);
             }
         }
 
-        return eggGroupsLib;
+        return out;
     }
 
-    private static _generateEvolLines(): EvoLinesLib {
-        const evoLinesLib: EvoLinesLib = {};
-        const pokemonLib = DataManager.POKEMON;
+    private static _generateEvoLines(): Map<string, string[]> {
+        const out: Map<string, string[]> = new Map();
+        const pokemonLib = DataManager.Pokemon;
 
         // Establish evo lines
         for (const [pokemonName, pokemon] of pokemonLib) {
             if (pokemon.isBasic()) {
-                evoLinesLib[pokemonName] = [];
+                out.set(pokemonName, []);
             }
         }
 
@@ -126,31 +132,35 @@ export class DataManager {
         for (const [pokemonName, pokemon] of pokemonLib) {
             const basic = pokemon.getBasic();
             // log(chalk.blue(`Adding ${form} to ${basic}`));
-            if (is.undefined(evoLinesLib[basic.toString()])) {
+            const lineMembers = out.get(basic.toString());
+            if (is.undefined(lineMembers)) {
                 log(error(`No evo line ${basic} exists for ${pokemonName}.`));
                 continue;
             }
-
-            evoLinesLib[basic.toString()].push(pokemonName);
+            lineMembers.push(pokemonName);
         }
 
-        return evoLinesLib;
+        return out;
     }
 
-    private static _generateLearnableMoves(): LearnableMovesLib {
-        const learnableMoves: Map<string, { [move: string]: LearnMethodInfo }> = new Map();
-        const pokemonLib = DataManager.POKEMON;
+    private static _generateMoveRegistry(): MoveRegistry {
+        const _registry = new MoveRegistry();
+        // const learnableMoves: Map<string, { [move: string]: LearnMethodInfo }> = new Map();
+        // const pokemonLib = DataManager.Pokemon;
 
         //* Initial Pass
-        for (const [pokemonName, pokemon] of pokemonLib) {
-            learnableMoves[pokemonName] ||= {};
-
+        for (const [pokemonName, pokemon] of DataManager.Pokemon) {
             for (const learnMethod in pokemon.moves) {
-                for (const move of pokemon.getMoves(learnMethod as MoveKeys)) {
-                    learnableMoves[pokemonName][move.name] ||= { learnMethods: [] };
+                const movesLearnInfo = pokemon.getMovesLearnInfo(learnMethod as MoveKeys);
+                for (const [move, learnInfo] of movesLearnInfo) {
+                    if (learnInfo.learnMethods.includes("eggMoves")) {
+                        learnInfo.parents = getParentsForMove(pokemon, move, "eggMoves");
+                    }
+                    _registry.addMove(pokemonName, move, learnInfo);
+                    // learnableMoves[pokemonName][move.name] ||= { learnMethods: [] };
 
-                    learnableMoves[pokemonName][move.name].learnMethods.push(move.method);
-                    if (move.level !== undefined) learnableMoves[pokemonName][move.name].level = move.level;
+                    // learnableMoves[pokemonName][move.name].learnMethods.push(move.method);
+                    // if (move.level !== undefined) learnableMoves[pokemonName][move.name].level = move.level;
                 }
             }
         }
@@ -166,7 +176,7 @@ export class DataManager {
                 const learnMethodInfo: LearnMethodInfo = learnableMoves[pokemonName][move];
 
                 if (learnMethodInfo.learnMethods.includes("eggMoves")) {
-                    learnMethodInfo.parents = getParentsForMove(DataManager.POKEMON[pokemonName], move, "eggMoves");
+                    learnMethodInfo.parents = getParentsForMove(DataManager.Pokemon[pokemonName], move, "eggMoves");
                 }
             }
         }
@@ -177,9 +187,9 @@ export class DataManager {
     /** Write Files */
     static _writeLibrariesToFiles() {
         const startTime = performance.now();
-        fs.writeFileSync(eggGroupsPath, JSON.stringify(DataManager.EGG_GROUPS, null, 4));
+        fs.writeFileSync(eggGroupsPath, JSON.stringify(DataManager.EggGroups, null, 4));
         fs.writeFileSync(learnableMovesPath, JSON.stringify(DataManager.LEARNABLE_MOVES, null, 4));
-        fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.EVO_LINES, null, 4));
+        fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.EvoLines, null, 4));
         log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
     }
 
@@ -218,7 +228,7 @@ export class DataManager {
     //#region Methods
     public static getPokemonInEggGroups(...groups: EggGroups[]): string[] {
         const out: string[] = [];
-        const eggGroupLib = DataManager.EGG_GROUPS;
+        const eggGroupLib = DataManager.EggGroups;
 
         for (const group of groups) {
             if (!Object.values(EggGroups).includes(group)) {

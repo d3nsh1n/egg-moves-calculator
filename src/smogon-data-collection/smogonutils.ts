@@ -41,7 +41,7 @@ export function toPixelmonName(arg: any): any {
 
         // Turn "Mimikyu" into "Mimikyu-disguise" for example
 
-        pixelmonName = !is.undefined(DataManager.POKEMON[pixelmonName]) ? pixelmonName : getDefaultFormOfSpecies(pixelmonName)?.toString() || "NOTFOUND";
+        pixelmonName = !is.undefined(DataManager.Pokemon[pixelmonName]) ? pixelmonName : getDefaultFormOfSpecies(pixelmonName)?.toString() || "NOTFOUND";
 
         //
         return pixelmonName;

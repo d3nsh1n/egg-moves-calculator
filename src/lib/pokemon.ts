@@ -1,8 +1,9 @@
 import is from "@sindresorhus/is";
-import { INHERITABLE_KEYS, MoveLearnData } from "./lib";
+import { INHERITABLE_KEYS, LearnMethodInfo, MoveLearnData } from "./lib";
 import { DataManager } from "../pixelmon-data-manager/data_manager";
 import { AbilitiesData, EggGroups, EvolutionData, FormData, MoveKeys, MovesData, PokemonData, TypesData } from "../pixelmon-data-manager/pixelmonlib";
-import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, toMoveLearnData, hasForm, toPokemonName } from "../pixelmon-data-manager/pixelmonutils";
+import { findBasicPreevolution, getDefaultFormOfSpecies, getFormWithTag, extractLearnMethodInfoBase, hasForm, toPokemonName } from "../pixelmon-data-manager/pixelmonutils";
+import { error } from "console";
 
 export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     name: string;
@@ -41,7 +42,7 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
         this.evolutions = evolutions;
     }
 
-    public canInheritMove(move: string): boolean {
+    public canInherit(move: string): boolean {
         // Guard
         if (is.undefined(this.moves)) {
             return false;
@@ -52,8 +53,8 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
                 continue;
             }
 
-            for (const moveOfForm of this.getMoves(key)) {
-                if (moveOfForm.name === move) {
+            for (const [moveOfForm, learnInfo] of this.getMovesLearnInfo(key)) {
+                if (moveOfForm === move) {
                     return true;
                 }
             }
@@ -73,15 +74,25 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
 
     public canLearn(move: string): boolean {
         //? Performant way. Cleaner alternative: search this.moves
-        return !is.undefined(DataManager.LEARNABLE_MOVES[this.toString()][move]);
+        const dataInRegistry = DataManager.MoveRegistry.getPokemonMoves(this.toString());
+
+        if (dataInRegistry === undefined) {
+            // Registry not yet initialized, or something went wrong.
+            for (const learnMethod in this.moves) {
+                if (this.getMovesLearnInfo(learnMethod as keyof MovesData).has(move)) return true;
+            }
+            return false;
+        } else {
+            return dataInRegistry.has(move);
+        }
     }
 
-    public getEggGroups(): string[] {
-        return this.eggGroups || DataManager.POKEMON[this.name].eggGroups || this.getDefaultForm().eggGroups;
+    public getEggGroups(): EggGroups[] {
+        return this.eggGroups || DataManager.Pokemon.get(this.name)?.eggGroups || this.getDefaultForm().eggGroups;
     }
 
     public getForms(): string[] {
-        return DataManager.FORM_INDEX[this.name];
+        return DataManager.FormIndex.get(this.name)!;
     }
 
     public getDefaultFormName(): string {
@@ -89,20 +100,32 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     }
 
     public getDefaultForm(): Pokemon {
-        return DataManager.POKEMON[toPokemonName(this.name, this.getDefaultFormName())];
+        return DataManager.Pokemon.get(toPokemonName(this.name, this.getDefaultFormName()))!;
     }
 
     public getPreEvolutions(): string[] {
         return this.preEvolutions || this.getDefaultForm().preEvolutions || [];
     }
 
-    public getMoves(key: MoveKeys): MoveLearnData[] {
-        const out = [];
-        if (is.undefined(this.moves) || is.undefined(this.moves[key])) {
-            return [];
+    public getMovesLearnInfo(learnMethod: MoveKeys): Map<string, LearnMethodInfo> {
+        const out: Map<string, LearnMethodInfo> = new Map();
+        if (is.undefined(this.moves) || is.undefined(this.moves[learnMethod])) {
+            return out;
         }
-        for (const move of this.moves[key]) {
-            out.push(...toMoveLearnData(move, key));
+        for (const moveOrLevelUpData of this.moves[learnMethod]) {
+            const learnMethodInfoBase = extractLearnMethodInfoBase(moveOrLevelUpData);
+
+            for (const [moveName, moveInfoBase] of learnMethodInfoBase) {
+                if (out.has(moveName)) {
+                    // Move is learned via more than one means, append new data
+                    const inf = out.get(moveName);
+                    inf!.learnMethods.push(...moveInfoBase.learnMethods);
+                    inf!.level = moveInfoBase.level;
+                } else {
+                    // First encounter of move
+                    out.set(moveName, moveInfoBase);
+                }
+            }
         }
         return out;
     }
@@ -119,7 +142,12 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
 
         // basic-form
         if (this.form !== "" && hasForm(speciesBasicStage, this.form)) {
-            return DataManager.POKEMON[toPokemonName(speciesBasicStage, this.form)];
+            const pokemonName = toPokemonName(speciesBasicStage, this.form);
+            const pokemon = DataManager.Pokemon.get(pokemonName);
+            if (!pokemon) {
+                throw error("No Pokemon data found for", pokemonName);
+            }
+            return pokemon;
         }
 
         // basic-tag
@@ -132,6 +160,6 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
 
         // basic-default || basic
         const basicSpeciesDefaultForm = getDefaultFormOfSpecies(speciesBasicStage);
-        return basicSpeciesDefaultForm || DataManager.POKEMON[speciesBasicStage];
+        return basicSpeciesDefaultForm || DataManager.Pokemon.get(speciesBasicStage)!;
     }
 }

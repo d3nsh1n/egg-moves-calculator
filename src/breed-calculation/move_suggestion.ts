@@ -17,11 +17,11 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
     //? You need to compare the MoveUsage of the Final Evo, to the learnset/inheritance of the basic form
     // Convert the name into the pixelmon convention (regional names, add default form if needed)
     const finalEvoFullName = toPixelmonName(fullName);
-    const finalEvo = DataManager.POKEMON[finalEvoFullName];
+    const finalEvo = DataManager.Pokemon[finalEvoFullName];
     const basicForm = finalEvo.getBasic();
 
     // Guard
-    if (is.undefined(DataManager.POKEMON[basicForm.toString()])) {
+    if (is.undefined(DataManager.Pokemon[basicForm.toString()])) {
         log(chalk.bgRed(`[ERR!] No data found for ${basicForm.toString()}.`));
         return [];
     }

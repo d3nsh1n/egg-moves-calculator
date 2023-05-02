@@ -1,3 +1,4 @@
+import "./lib/_extensions";
 import fs from "fs-extra";
 import "./pixelmon-data-manager/data_manager";
 import { DataManager } from "./pixelmon-data-manager/data_manager";

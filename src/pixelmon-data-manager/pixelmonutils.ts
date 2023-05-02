@@ -1,5 +1,5 @@
 import is from "@sindresorhus/is";
-import { EggGroupsLib, MoveLearnData, MoveParents } from "../lib/lib";
+import { LearnMethodInfo, MoveLearnData, MoveParents } from "../lib/lib";
 import { error, unboundLog } from "../lib/logger";
 import { Pokemon } from "../lib/pokemon";
 import { DataManager } from "./data_manager";
@@ -13,12 +13,17 @@ export function getParentsForMove(pokemon: Pokemon, move: string, method: MoveKe
     const out: string[] = [];
 
     for (const potentialParentName of DataManager.getPokemonInEggGroups(...pokemon.getEggGroups())) {
-        if (!DataManager.POKEMON[potentialParentName].canLearn(move)) {
+        const potentialParent = DataManager.Pokemon.get(potentialParentName);
+        if (potentialParent === undefined) {
+            throw error("Could not fetch Pokemon Data for", potentialParentName);
+        }
+
+        if (!potentialParent.canLearn(move)) {
             continue;
         }
 
         // Check if parent can pass it
-        if (parentIsValid(pokemon, DataManager.POKEMON[potentialParentName], method)) {
+        if (parentIsValid(pokemon, potentialParent, method)) {
             out.push(potentialParentName);
         }
     }
@@ -28,7 +33,7 @@ export function getParentsForMove(pokemon: Pokemon, move: string, method: MoveKe
 export function getMoveParents(parents: string[], move: string): MoveParents {
     const out: MoveParents = {};
     for (const parent of parents) {
-        out[parent] = DataManager.LEARNABLE_MOVES[parent][move];
+        out[parent] = DataManager.MoveRegistry.getPokemonMoves(parent)?.get(move)!;
     }
     return out;
 }
@@ -50,9 +55,7 @@ export function parentIsValid(base: Pokemon, parent: Pokemon, method: MoveKeys):
 }
 
 export function shareEggGroup(pokemon1: Pokemon, pokemon2: Pokemon): boolean {
-    for (const group in DataManager.EGG_GROUPS) {
-        const pokemonInGroup = DataManager.EGG_GROUPS[group as keyof EggGroupsLib];
-        if (!pokemonInGroup) throw log(error("!ERR: Could not read Pokemon in group", group));
+    for (const [group, pokemonInGroup] of DataManager.EggGroups) {
         if (pokemonInGroup.includes(pokemon1.toString()) && pokemonInGroup.includes(pokemon2.toString())) return true;
     }
     return false;
@@ -68,15 +71,18 @@ export function toPokemonName(species: string, form: string): string {
 
 export function findBasicPreevolution(preEvolutions: string[]): Pokemon {
     for (const pr of preEvolutions) {
-        const prPokemon = DataManager.POKEMON[pr] || getDefaultFormOfSpecies(pr);
+        const prPokemon = DataManager.Pokemon.get(pr) || getDefaultFormOfSpecies(pr);
+        if (!prPokemon) {
+            throw console.log("prPokemon null", preEvolutions);
+        }
         if (is.undefined(prPokemon.preEvolutions) || prPokemon.preEvolutions.length === 0) return prPokemon;
     }
     throw log(error("Could not find a basic stage in"), preEvolutions);
 }
 
 export function getFormWithTag(speciesName: string, tag: string): Pokemon | null {
-    for (const form of DataManager.FORM_INDEX[speciesName]) {
-        const pokemon = DataManager.POKEMON[toPokemonName(speciesName, form)];
+    for (const form of DataManager.FormIndex[speciesName]) {
+        const pokemon = DataManager.Pokemon[toPokemonName(speciesName, form)];
         if (!is.undefined(pokemon.tags) && pokemon.tags.includes(tag)) {
             return pokemon;
         }
@@ -85,52 +91,48 @@ export function getFormWithTag(speciesName: string, tag: string): Pokemon | null
 }
 
 export function getDefaultFormOfSpecies(speciesName: string): Pokemon | null {
-    const pokemon: Pokemon = DataManager.POKEMON[speciesName];
+    const pokemon: Pokemon = DataManager.Pokemon[speciesName];
     if (!is.undefined(pokemon)) {
         return pokemon;
     }
 
     // No "speciesname" form, need to find default form
-    if (is.undefined(DataManager.FORM_INDEX[speciesName] || DataManager.FORM_INDEX[speciesName].length === 0)) {
+    if (is.undefined(DataManager.FormIndex[speciesName] || DataManager.FormIndex[speciesName].length === 0)) {
         log(error(`No default form can be found for ${speciesName}`));
         return null;
     }
 
-    const temp: Pokemon = DataManager.POKEMON[toPokemonName(speciesName, DataManager.FORM_INDEX[speciesName][0])];
+    const temp: Pokemon = DataManager.Pokemon[toPokemonName(speciesName, DataManager.FormIndex[speciesName][0])];
     const defaultForm: string = temp.getDefaultFormName();
-    return DataManager.POKEMON[toPokemonName(speciesName, defaultForm)] || null;
+    return DataManager.Pokemon[toPokemonName(speciesName, defaultForm)] || null;
 }
 
 export function hasForm(speciesName: string, formName: string): boolean {
-    return DataManager.FORM_INDEX[speciesName].includes(formName);
+    return DataManager.FormIndex[speciesName].includes(formName);
 }
 
 export function forEachPokemon(callback: (pokemon: Pokemon) => void) {
-    for (const pokemonName in DataManager.POKEMON) {
-        callback(DataManager.POKEMON[pokemonName]);
+    for (const pokemonName in DataManager.Pokemon) {
+        callback(DataManager.Pokemon[pokemonName]);
     }
 }
 
-/** Extract Move Learn Data - Uses a unified format for moves, and returns array in case of multiple moves from the same level in LevelUpMoveData */
-export function toMoveLearnData(move: string | LevelUpMoveData, method: MoveKeys): MoveLearnData[] {
+/** Extracts moves from the LevelUpMove format, to a unified map of movename => empty LearnMethodInfo obj */
+export function extractLearnMethodInfoBase(move: string | LevelUpMoveData): Map<string, LearnMethodInfo> {
+    const out = new Map();
     if (is.string(move)) {
-        return [
-            {
-                name: move,
-                method,
-            },
-        ];
+        out.set(move, {
+            learnMethods: [],
+        });
     } else {
-        const out: MoveLearnData[] = [];
-        for (const m of move.attacks) {
-            out.push({
-                name: m,
-                method,
+        for (const moveName of move.attacks) {
+            out.set(moveName, {
+                learnMethods: [],
                 level: move.level,
             });
         }
-        return out;
     }
+    return out;
 }
 
 export function parentsThatLearnFromMethod(pokemonName: string, move: string, method: MoveKeys = "levelUpMoves") {
