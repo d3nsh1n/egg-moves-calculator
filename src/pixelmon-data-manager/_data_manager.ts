@@ -10,6 +10,7 @@ import { extractLearnMethodInfoBase, getParentsForMove } from "./pixelmonutils";
 import { MoveRegistry } from "./_move_registry";
 import { EggGroupRegistry } from "./_egg_group_registry";
 import { PokemonRegistry } from "./_pokemon_registry";
+import { mapReplacer } from "../lib/utils";
 
 const { log, warn, error } = new Logger(true, "DataManager", "#23584F");
 
@@ -48,6 +49,9 @@ export class DataManager {
         //todo Serialize and save Registry
         warn("A");
         DataManager.PokemonRegistry = new PokemonRegistry(pokemonData);
+        fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
+
+        DataManager.PokemonRegistry.generateEvoLines();
         warn("B");
         DataManager.EggGroupRegistry = new EggGroupRegistry(DataManager.PokemonRegistry);
         DataManager.MoveRegistry = new MoveRegistry(DataManager.PokemonRegistry);
@@ -85,9 +89,10 @@ export class DataManager {
     /** Write Files */
     static _writeLibrariesToFiles() {
         const startTime = performance.now();
-        // fs.writeFileSync(eggGroupsPath, JSON.stringify(DataManager.EggGroupRegistry, null, 4));
-        // fs.writeFileSync(learnableMovesPath, JSON.stringify(DataManager.LEARNABLE_MOVES, null, 4));
-        // fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.EvoLines, null, 4));
+        fs.writeFileSync("data/PokemonRegistry.json", JSON.stringify(DataManager.PokemonRegistry, mapReplacer, 4));
+        fs.writeFileSync(eggGroupsPath, JSON.stringify(DataManager.EggGroupRegistry, mapReplacer, 4));
+        fs.writeFileSync(learnableMovesPath, JSON.stringify(DataManager.MoveRegistry, mapReplacer, 4));
+        fs.writeFileSync(evoLinesPath, JSON.stringify(DataManager.EvoLines, mapReplacer, 4));
         log(chalk.bgGreen(`DataLoader took ${(performance.now() - startTime).toFixed(0)} milliseconds to write files.`));
     }
 

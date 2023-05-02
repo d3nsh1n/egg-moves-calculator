@@ -23,3 +23,22 @@ export function arrayEquals<T>(arr1: T[], arr2: T[], orderMatters = false): bool
 export function deepCopy<T>(obj: T): T {
     return JSON.parse(JSON.stringify(obj));
 }
+
+export function mapReplacer(key: any, value: any) {
+    if (value instanceof Map) {
+        return {
+            dataType: "Map",
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
+    } else {
+        return value;
+    }
+}
+export function mapReviver(key: any, value: any) {
+    if (typeof value === "object" && value !== null) {
+        if (value.dataType === "Map") {
+            return new Map(value.value);
+        }
+    }
+    return value;
+}

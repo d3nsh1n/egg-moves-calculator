@@ -18,9 +18,13 @@ export class PokemonRegistry {
             // Register form in the index
             const forms = this.Forms.getOrCreate(pokemon.name, []);
             forms.push(pokemon.form);
-            log("done", pokemonName);
+        }
+    }
 
-            // Establish evo lines
+    public generateEvoLines() {
+        //? Not done in constructor cause isBasic() requires a filled DataManager.PokemonRegistry; Fix too messy?
+        // Establish evo lines
+        for (const [pokemonName, pokemon] of this.pokemonMap) {
             if (pokemon.isBasic()) {
                 this.EvoLines.set(pokemonName, []);
             }
@@ -28,8 +32,8 @@ export class PokemonRegistry {
 
         // Populate evo lines
         for (const [pokemonName, pokemon] of this.pokemonMap) {
+            log("done", pokemonName);
             const basic = pokemon.getBasic(this);
-            // log(chalk.blue(`Adding ${form} to ${basic}`));
             const lineMembers = this.EvoLines.get(basic.toString());
             if (is.undefined(lineMembers)) {
                 log(error(`No evo line ${basic} exists for ${pokemonName}.`));
