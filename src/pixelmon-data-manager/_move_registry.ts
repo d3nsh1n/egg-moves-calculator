@@ -9,9 +9,10 @@ import chalk from "chalk";
 const { log, warn, error } = new Logger(true, "MoveRegistry", "#133387");
 
 export class MoveRegistry {
-    private Pokemon: Map<string, Set<string>> = new Map();
-    private Moves: Map<string, Set<string>> = new Map();
-    private LearnInfo: Map<string, LearnMethodInfo> = new Map();
+    private Pokemon: Map<string, Map<string, LearnMethodInfo>> = new Map();
+    private Moves: Map<string, Map<string, LearnMethodInfo>> = new Map();
+    // private Moves: Map<string, Set<string>> = new Map();
+    // private LearnInfo: Map<string, LearnMethodInfo> = new Map();
 
     constructor(private pokemonRegistry: PokemonRegistry) {
         for (const [pokemonName, pokemon] of pokemonRegistry.all()) {
@@ -58,40 +59,42 @@ export class MoveRegistry {
 
     public addMove(pokemon: string, move: string, learnInfo: LearnMethodInfo) {
         // Register Move and Pokemon
-        const existingPokemonData = this.Pokemon.getOrCreate(pokemon, new Set([]));
-        const existingMoveData = this.Moves.getOrCreate(move, new Set([]));
-        existingPokemonData.add(move);
-        existingMoveData.add(pokemon);
+        const moveMap = this.Pokemon.getOrCreate(pokemon, new Map());
 
         // Store Info
-        const existingInfo = this.LearnInfo.get(toKey(pokemon, move));
+        const existingInfo = moveMap.get(move);
         if (existingInfo !== undefined) {
             // Move is learned via more than one means, append new data
             existingInfo.learnMethods.push(...learnInfo.learnMethods);
             existingInfo.level = learnInfo.level;
         } else {
             // First encounter of move
-            this.LearnInfo.set(toKey(pokemon, move), learnInfo);
+            moveMap.set(move, learnInfo);
         }
+
+        // [Optional] copy to Moves map, slower init, more memory, but faster lookup?
+        const pokemonMap = this.Moves.getOrCreate(move, new Map());
+        const finalInfo = this.Pokemon.get(pokemon)!.get(move)!;
+        pokemonMap.set(pokemon, finalInfo);
     }
 
     public getPokemonMoves(pokemon: string): Map<string, LearnMethodInfo> | undefined {
-        const out = new Map();
-        const moves = this.Pokemon.get(pokemon);
-        if (moves === undefined) return undefined;
+        return this.Pokemon.get(pokemon);
+        // const out = new Map();
+        // const moves = this.Pokemon.get(pokemon);
+        // if (moves === undefined) return undefined;
 
-        for (const move of moves) {
-            const inf = this.LearnInfo.get(toKey(pokemon, move));
-            out.set(move, inf);
-        }
-        return out;
+        // for (const move of moves) {
+        //     const inf = this.LearnInfo.get(toKey(pokemon, move));
+        //     out.set(move, inf);
+        // }
+        // return out;
     }
 
     public getMoveSources(move: string): Map<string, LearnMethodInfo> {
         const out = new Map();
         const pokemon = this.Moves.get(move);
         if (pokemon === undefined) return out;
-
         for (const poke of pokemon) {
             const inf = this.LearnInfo.get(toKey(poke, move));
             out.set(poke, inf);

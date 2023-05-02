@@ -114,7 +114,7 @@ export function compressPaths(paths: BreedingPath[]) {
                     const otherParent = DataManager.PokemonRegistry.get(otherParentName);
 
                     if (isSameEvoLine(otherParent, parent) && arrayEquals(path.parents.slice(path.parents.indexOf(parentName), 1), otherPath.parents.slice(otherPath.parents.indexOf(otherParentName), 1))) {
-                        console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName), 1)]);
+                        // console.log([[parentName, otherParentName], ...path.parents.slice(path.parents.indexOf(parentName), 1)]);
                     }
                 }
             }
