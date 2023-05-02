@@ -86,7 +86,7 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
             }
             return false;
         } else {
-            return dataInRegistry.has(move);
+            return dataInRegistry.hasOwnProperty(move);
         }
     }
 

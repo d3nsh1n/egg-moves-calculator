@@ -31,7 +31,7 @@ export function getParentsForMove(pokemon: Pokemon, move: string, method: MoveKe
 export function getMoveParents(parents: string[], move: string): MoveParents {
     const out: MoveParents = {};
     for (const parent of parents) {
-        out[parent] = DataManager.MoveRegistry.getPokemonMoves(parent)?.get(move)!;
+        out[parent] = DataManager.MoveRegistry.getPokemonMoves(parent)?.[move]!;
     }
     return out;
 }
@@ -135,7 +135,5 @@ export function extractLearnMethodInfoBase(move: string | LevelUpMoveData): Map<
 }
 
 export function parentsThatLearnFromMethod(pokemonName: string, move: string, method: MoveKeys = "levelUpMoves") {
-    return DataManager.MoveRegistry.getPokemonMoves(pokemonName)
-        ?.get(move)
-        ?.parents?.filter((p) => DataManager.MoveRegistry.getPokemonMoves(p)?.get(move)?.learnMethods.includes(method));
+    return DataManager.MoveRegistry.getPokemonMoves(pokemonName)?.[move]?.parents?.filter((p) => DataManager.MoveRegistry.getPokemonMoves(p)?.[move]?.learnMethods.includes(method));
 }

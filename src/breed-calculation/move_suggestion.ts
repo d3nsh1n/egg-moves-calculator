@@ -39,9 +39,9 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
 
     for (const usedMove in moveUsage) {
         // Guard
-        if (!DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.has(usedMove)) {
+        if (!DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.hasOwnProperty(usedMove)) {
             warn(`Basic form cannot learn: ${usedMove}`);
-            const fullNameMoveInf = DataManager.MoveRegistry.getPokemonMoves(fullName)?.get(usedMove);
+            const fullNameMoveInf = DataManager.MoveRegistry.getPokemonMoves(fullName)?.[usedMove];
             if (fullNameMoveInf) {
                 log(fullNameMoveInf.learnMethods);
             } else {
@@ -56,7 +56,7 @@ export async function suggestMoves(fullName: string, amount?: number, forceInclu
         }
 
         // Get learn Info
-        const learnMethodInfo = DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.get(usedMove)!;
+        const learnMethodInfo = DataManager.MoveRegistry.getPokemonMoves(basicForm.toString())?.[usedMove]!;
         const learnMethods = learnMethodInfo?.learnMethods!;
         const parents: MoveParents = getMoveParents(learnMethodInfo?.parents || [], usedMove);
 
