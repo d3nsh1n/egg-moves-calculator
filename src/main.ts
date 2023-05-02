@@ -20,6 +20,7 @@ export async function main() {
     log("Running new version.");
     new DataManager(true);
     const pokemon = DataManager.PokemonRegistry.get("Gastly");
+    return;
     const moves = await suggestMoves("Gastly", 4, ["Disable", "Clear Smog", "Grudge"]);
     const info = toParentInfo(moves);
     console.log({ info });

@@ -74,14 +74,13 @@ export class Pokemon implements Omit<PokemonData, "forms">, Partial<FormData> {
     }
 
     public canLearn(move: string): boolean {
-        if (this.toString() === "Greninja-ash") return false;
         //? Performant way. Cleaner alternative: search this.moves
         const dataInRegistry = DataManager.MoveRegistry?.getPokemonMoves(this.toString());
         // console.log(DataManager.MoveRegistry.getPokemonMoves(this.toString()) === undefined, this.toString());
 
         if (dataInRegistry === undefined) {
             // Registry not yet initialized, or something went wrong.
-            warn("No Move Registry found! Manually calculating canLearn()", this.toString());
+            // warn("No Move Registry found! Manually calculating canLearn()", this.toString());
             for (const learnMethod in this.moves) {
                 if (this.getMovesLearnInfo(learnMethod as keyof MovesData).has(move)) return true;
             }

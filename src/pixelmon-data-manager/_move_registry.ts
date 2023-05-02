@@ -1,8 +1,10 @@
+import { performance } from "perf_hooks";
 import { LearnMethodInfo } from "../lib/lib";
 import { Logger } from "../lib/logger";
 import { PokemonRegistry } from "./_pokemon_registry";
 import { MoveKeys } from "./pixelmonlib";
 import { getParentsForMove } from "./pixelmonutils";
+import chalk from "chalk";
 
 const { log, warn, error } = new Logger(true, "MoveRegistry", "#133387");
 
@@ -19,7 +21,6 @@ export class MoveRegistry {
             //         tutorMoves: [ ... ]
             //     }
             // }
-            if (!pokemon.moves) console.log(pokemonName);
             for (const learnMethod in pokemon.moves) {
                 const movesLearnInfo = pokemon.getMovesLearnInfo(learnMethod as MoveKeys);
                 for (const [move, learnInfo] of movesLearnInfo) {
@@ -33,9 +34,10 @@ export class MoveRegistry {
     }
 
     public populateEggMoves() {
-        console.log("Moves:", this.Pokemon.size);
-
+        let startTime = performance.now();
+        const TIMES = new Map();
         for (const [pokemonName, moves] of this.Pokemon) {
+            let t1 = performance.now();
             const pokemon = this.pokemonRegistry.get(pokemonName);
             const pokemonMoves = this.getPokemonMoves(pokemonName);
             if (pokemonMoves === undefined) {
@@ -47,7 +49,11 @@ export class MoveRegistry {
                     learnInfo.parents = getParentsForMove(pokemon, move, "eggMoves");
                 }
             }
+            const t2 = (performance.now() - t1).toFixed(0);
+            TIMES.set(pokemonName, t2);
         }
+        // console.log(TIMES);
+        log(chalk.bgGreenBright(`Populating Egg Moves took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));
     }
 
     public addMove(pokemon: string, move: string, learnInfo: LearnMethodInfo) {
