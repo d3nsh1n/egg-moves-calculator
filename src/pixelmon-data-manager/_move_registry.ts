@@ -39,12 +39,14 @@ export class MoveRegistry {
         const TIMES = new Map();
         for (const [pokemonName, moves] of this.Pokemon) {
             let t1 = performance.now();
+            // log("Doing", pokemonName);
             const pokemon = this.pokemonRegistry.get(pokemonName);
             const pokemonMoves = this.getPokemonMoves(pokemonName);
             if (pokemonMoves === undefined) {
                 error("Could not get move data for", pokemonName);
                 return;
             }
+            // log("===");
             for (const [move, learnInfo] of pokemonMoves) {
                 if (learnInfo.learnMethods.includes("eggMoves")) {
                     learnInfo.parents = getParentsForMove(pokemon, move, "eggMoves");

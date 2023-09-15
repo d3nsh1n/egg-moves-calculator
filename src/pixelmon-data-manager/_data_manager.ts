@@ -81,6 +81,11 @@ export class DataManager {
             for (const form of pokemonData.forms) {
                 const pokemon: Pokemon = new Pokemon(pokemonData, form);
                 out.push(pokemon);
+                for (const move of form.moves?.levelUpMoves || []) {
+                    if (move.level == 100 || move.level == "100") {
+                        console.log(pokemonData.name, form.name, move.attacks);
+                    }
+                }
             }
         }
         log(chalk.bgGreenBright(`_loadDataFromFiles took ${(performance.now() - startTime).toFixed(0)} milliseconds to initialize.`));

@@ -53,7 +53,8 @@ export class PokemonRegistry {
     public get(pokemonName: string, allowUndefined?: true): Pokemon | undefined {
         const pokemon = this.pokemonMap.get(pokemonName);
         if (pokemon === undefined && !allowUndefined) {
-            throw error(`No data found for ${pokemonName}`);
+            error(`No data found for ${pokemonName}`);
+            return undefined;
         }
         return pokemon;
     }

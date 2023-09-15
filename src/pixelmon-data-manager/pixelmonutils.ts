@@ -9,7 +9,7 @@ const { log, warn, error } = new Logger(true, "PixelmonUtils", "#121212");
 
 export function getParentsForMove(pokemon: Pokemon, move: string, method: MoveKeys): string[] {
     const out: string[] = [];
-
+    // log(pokemon.toString());
     for (const potentialParentName of DataManager.EggGroupRegistry.get(...pokemon.getEggGroups())) {
         const potentialParent = DataManager.PokemonRegistry.get(potentialParentName);
         if (potentialParent === undefined) {

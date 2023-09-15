@@ -135,6 +135,7 @@ dist
 
 # custom
 data
+data_new
 kernel
 toolchain-cache
 node_modules
